@@ -4,10 +4,10 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { StepIndicator } from '@/components/ui/step-indicator';
 import { useBooking } from '@/contexts/BookingContext';
 import { confirmBooking } from '@/services/api';
-import { User, Phone, Mail, Armchair, Ticket, Loader2, ArrowLeft } from 'lucide-react';
+import { User, Phone, Mail, Flower2, Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 
 const steps = [
-  { number: 1, title: 'Validate Code' },
+  { number: 1, title: 'Enter Code' },
   { number: 2, title: 'Select Seat' },
   { number: 3, title: 'Your Details' },
   { number: 4, title: 'Confirmation' },
@@ -73,7 +73,7 @@ export default function UserDetails() {
         navigate('/success');
       }
     } catch (error) {
-      console.error('Booking failed:', error);
+      console.error('Reservation failed:', error);
     } finally {
       setLoading(false);
     }
@@ -93,25 +93,25 @@ export default function UserDetails() {
 
         {/* Title */}
         <div className="text-center mb-10 animate-fade-up">
-          <h1 className="font-display text-4xl font-bold text-foreground mb-3">
-            Your Details
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3">
+            Sadhak Details
           </h1>
           <p className="text-muted-foreground">
-            Please provide your contact information to complete the booking
+            Please provide your contact information to complete the seat reservation
           </p>
         </div>
 
         <div className="max-w-2xl mx-auto grid gap-8">
-          {/* Booking Summary Card */}
+          {/* Reservation Summary Card */}
           <div className="glass-card animate-fade-up" style={{ animationDelay: '100ms' }}>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Booking Summary</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Reservation Summary</h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
                 <div className="p-2 rounded-lg bg-primary/10">
-                  <Armchair className="w-5 h-5 text-primary" />
+                  <Flower2 className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Selected Seat</p>
+                  <p className="text-xs text-muted-foreground">Meditation Seat</p>
                   <p className="text-lg font-bold text-foreground">
                     {bookingState.selectedSeat?.id}
                   </p>
@@ -119,10 +119,10 @@ export default function UserDetails() {
               </div>
               <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
                 <div className="p-2 rounded-lg bg-primary/10">
-                  <Ticket className="w-5 h-5 text-primary" />
+                  <Sparkles className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Booking Code</p>
+                  <p className="text-xs text-muted-foreground">Invitation Code</p>
                   <p className="text-lg font-bold font-mono text-foreground">
                     {bookingState.code}
                   </p>
@@ -143,7 +143,7 @@ export default function UserDetails() {
               {/* Full Name */}
               <div>
                 <label htmlFor="fullName" className="block text-sm font-medium text-foreground mb-2">
-                  Full Name
+                  Full Name (as per records)
                 </label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -227,10 +227,10 @@ export default function UserDetails() {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Confirming Booking...
+                    Confirming Reservation...
                   </>
                 ) : (
-                  'Confirm Booking'
+                  'Confirm Seat Reservation'
                 )}
               </button>
             </div>

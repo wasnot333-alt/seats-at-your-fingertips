@@ -53,12 +53,12 @@ export function SeatLayout() {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      {/* Stage */}
+      {/* Guru/Stage Area */}
       <div className="mb-12 animate-fade-up">
         <div className="stage-banner animate-glow">
-          STAGE
+          🙏 GURU AASAN 🙏
         </div>
-        <p className="text-center text-muted-foreground text-sm mt-3">Front Side</p>
+        <p className="text-center text-muted-foreground text-sm mt-3">Front - Facing the Divine</p>
       </div>
 
       {/* Seat Grid */}
@@ -90,7 +90,7 @@ export function SeatLayout() {
 
             {/* Center Pathway */}
             <div className="pathway">
-              <span className="text-xs uppercase tracking-wider opacity-50">Aisle</span>
+              <span className="text-xs uppercase tracking-wider opacity-50">Path</span>
             </div>
 
             {/* Right Section */}
@@ -116,7 +116,7 @@ export function SeatLayout() {
       </div>
 
       {/* Back Label */}
-      <p className="text-center text-muted-foreground text-sm mt-8">Back Side</p>
+      <p className="text-center text-muted-foreground text-sm mt-8">Back Side - Entry</p>
 
       {/* Legend */}
       <div className="flex justify-center gap-8 mt-10 pt-8 border-t border-border">
@@ -130,7 +130,7 @@ export function SeatLayout() {
         </div>
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 rounded-md bg-seat-booked opacity-60" />
-          <span className="text-sm text-muted-foreground">Booked</span>
+          <span className="text-sm text-muted-foreground">Reserved</span>
         </div>
       </div>
     </div>
