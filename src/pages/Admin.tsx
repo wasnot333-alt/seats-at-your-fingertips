@@ -174,6 +174,7 @@ export default function Admin() {
                       <tr className="border-b border-border bg-secondary/30">
                         <th className="text-left px-6 py-4 font-semibold text-foreground">Seat</th>
                         <th className="text-left px-6 py-4 font-semibold text-foreground">Customer Name</th>
+                        <th className="text-left px-6 py-4 font-semibold text-foreground">Level</th>
                         <th className="text-left px-6 py-4 font-semibold text-foreground hidden md:table-cell">Mobile</th>
                         <th className="text-left px-6 py-4 font-semibold text-foreground hidden lg:table-cell">Email</th>
                         <th className="text-left px-6 py-4 font-semibold text-foreground hidden sm:table-cell">Code</th>
@@ -186,6 +187,11 @@ export default function Admin() {
                         <tr key={booking.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
                           <td className="px-6 py-4"><span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 font-display font-bold text-primary">{booking.seatNumber}</span></td>
                           <td className="px-6 py-4"><span className="font-medium text-foreground">{booking.customerName}</span></td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2 py-1 rounded-lg bg-purple-500/10 text-purple-500 text-sm font-medium">
+                              {booking.sessionLevel || 'Level 1'}
+                            </span>
+                          </td>
                           <td className="px-6 py-4 text-muted-foreground hidden md:table-cell">{booking.mobileNumber}</td>
                           <td className="px-6 py-4 text-muted-foreground hidden lg:table-cell">{booking.email}</td>
                           <td className="px-6 py-4 hidden sm:table-cell"><span className="font-mono text-sm px-3 py-1 rounded-lg bg-secondary text-foreground">{booking.codeUsed}</span></td>

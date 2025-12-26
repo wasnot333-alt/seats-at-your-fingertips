@@ -4,7 +4,7 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { StepIndicator } from '@/components/ui/step-indicator';
 import { useBooking } from '@/contexts/BookingContext';
 import { CheckCircle2, Sparkles, Home } from 'lucide-react';
-import BookingTicket from '@/components/booking/BookingTicket';
+import MultiBookingTicket from '@/components/booking/MultiBookingTicket';
 import { Booking } from '@/types/booking';
 
 const steps = [
@@ -16,33 +16,41 @@ const steps = [
 
 export default function Success() {
   const navigate = useNavigate();
-  const { confirmedBooking, resetBooking } = useBooking();
+  const { confirmedBookings, confirmedBooking, resetBooking } = useBooking();
 
   useEffect(() => {
-    if (!confirmedBooking) {
+    // Navigate away if no bookings exist
+    if (confirmedBookings.length === 0 && !confirmedBooking) {
       navigate('/');
     }
-  }, [confirmedBooking, navigate]);
+  }, [confirmedBookings, confirmedBooking, navigate]);
 
-  if (!confirmedBooking) return null;
+  if (confirmedBookings.length === 0 && !confirmedBooking) return null;
 
   const handleNewReservation = () => {
     resetBooking();
     navigate('/');
   };
 
-  // Use confirmed booking data directly - it's already in correct format
-  const booking: Booking = {
-    id: confirmedBooking.id || crypto.randomUUID(),
-    seatId: confirmedBooking.seatId || confirmedBooking.seatNumber || '',
-    seatNumber: confirmedBooking.seatNumber || '',
-    customerName: confirmedBooking.customerName || '',
-    mobileNumber: confirmedBooking.mobileNumber || '',
-    email: confirmedBooking.email || '',
-    codeUsed: confirmedBooking.codeUsed || '',
-    bookingTime: confirmedBooking.bookingTime || '',
-    status: 'booked',
-  };
+  // Use multi-booking array if available, otherwise fallback to single booking
+  const bookingsToShow: Booking[] = confirmedBookings.length > 0 
+    ? confirmedBookings 
+    : confirmedBooking 
+      ? [{
+          id: confirmedBooking.id || crypto.randomUUID(),
+          seatId: confirmedBooking.seatId || confirmedBooking.seatNumber || '',
+          seatNumber: confirmedBooking.seatNumber || '',
+          customerName: confirmedBooking.customerName || '',
+          mobileNumber: confirmedBooking.mobileNumber || '',
+          email: confirmedBooking.email || '',
+          codeUsed: confirmedBooking.codeUsed || '',
+          sessionLevel: confirmedBooking.sessionLevel || 'Level 1',
+          bookingTime: confirmedBooking.bookingTime || '',
+          status: 'booked' as const,
+        }]
+      : [];
+
+  const primaryEmail = bookingsToShow[0]?.email || '';
 
   return (
     <PageContainer>
@@ -74,7 +82,7 @@ export default function Success() {
             className="mb-8 animate-fade-up" 
             style={{ animationDelay: '300ms' }}
           >
-            <BookingTicket booking={booking} />
+            <MultiBookingTicket bookings={bookingsToShow} />
           </div>
 
           {/* Confirmation Message */}
@@ -83,7 +91,7 @@ export default function Success() {
             style={{ animationDelay: '400ms' }}
           >
             <p className="text-seat-available font-medium">
-              ✓ A confirmation email has been sent to {confirmedBooking.email}
+              ✓ A confirmation email has been sent to {primaryEmail}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
               Please arrive at the ashram on time for the meditation session.
