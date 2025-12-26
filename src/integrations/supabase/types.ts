@@ -46,31 +46,31 @@ export type Database = {
       }
       bookings: {
         Row: {
-          access_code_used: string
           booking_time: string
           customer_name: string
           email: string
           id: string
+          invitation_code_used: string
           mobile_number: string
           seat_id: string
           status: string
         }
         Insert: {
-          access_code_used: string
           booking_time?: string
           customer_name: string
           email: string
           id?: string
+          invitation_code_used: string
           mobile_number: string
           seat_id: string
           status?: string
         }
         Update: {
-          access_code_used?: string
           booking_time?: string
           customer_name?: string
           email?: string
           id?: string
+          invitation_code_used?: string
           mobile_number?: string
           seat_id?: string
           status?: string
@@ -84,6 +84,42 @@ export type Database = {
             referencedColumns: ["seat_id"]
           },
         ]
+      }
+      invitation_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          current_usage: number
+          expires_at: string | null
+          id: string
+          max_usage: number | null
+          status: Database["public"]["Enums"]["invitation_code_status"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          current_usage?: number
+          expires_at?: string | null
+          id?: string
+          max_usage?: number | null
+          status?: Database["public"]["Enums"]["invitation_code_status"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          current_usage?: number
+          expires_at?: string | null
+          id?: string
+          max_usage?: number | null
+          status?: Database["public"]["Enums"]["invitation_code_status"]
+          updated_at?: string
+        }
+        Relationships: []
       }
       seats: {
         Row: {
@@ -151,6 +187,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      invitation_code_status: "active" | "disabled" | "expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -279,6 +316,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      invitation_code_status: ["active", "disabled", "expired"],
     },
   },
 } as const

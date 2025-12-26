@@ -1,4 +1,4 @@
-import { Booking, BookingCode, Seat, UserDetails } from '@/types/booking';
+import { Booking, BookingCode, Seat, UserDetails, InvitationCode } from '@/types/booking';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -134,7 +134,7 @@ export async function getAdminBookings(): Promise<Booking[]> {
       customerName: booking.customer_name,
       mobileNumber: booking.mobile_number,
       email: booking.email,
-      codeUsed: booking.access_code_used,
+      codeUsed: booking.invitation_code_used,
       bookingTime: new Date(booking.booking_time).toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -147,6 +147,158 @@ export async function getAdminBookings(): Promise<Booking[]> {
   } catch (error) {
     console.error('Error fetching bookings:', error);
     return [];
+  }
+}
+
+/**
+ * GET /admin/invitation-codes
+ * Fetches all invitation codes for admin panel (requires admin auth)
+ */
+export async function getInvitationCodes(): Promise<InvitationCode[]> {
+  try {
+    const { data, error } = await supabase
+      .from('invitation_codes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching invitation codes:', error);
+      return [];
+    }
+
+    return data.map((code) => ({
+      id: code.id,
+      code: code.code,
+      status: code.status as 'active' | 'disabled' | 'expired',
+      maxUsage: code.max_usage,
+      currentUsage: code.current_usage,
+      expiresAt: code.expires_at,
+      createdBy: code.created_by,
+      createdAt: code.created_at,
+      updatedAt: code.updated_at,
+    }));
+  } catch (error) {
+    console.error('Error fetching invitation codes:', error);
+    return [];
+  }
+}
+
+/**
+ * POST /admin/invitation-codes
+ * Creates a new invitation code (requires admin auth)
+ */
+export async function createInvitationCode(
+  codeData: Omit<InvitationCode, 'id' | 'currentUsage' | 'createdAt' | 'updatedAt'>
+): Promise<{ success: boolean; code?: InvitationCode; error?: string }> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { data, error } = await supabase
+      .from('invitation_codes')
+      .insert({
+        code: codeData.code.toUpperCase().trim(),
+        status: codeData.status,
+        max_usage: codeData.maxUsage,
+        expires_at: codeData.expiresAt,
+        created_by: user?.id,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating invitation code:', error);
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      code: {
+        id: data.id,
+        code: data.code,
+        status: data.status as 'active' | 'disabled' | 'expired',
+        maxUsage: data.max_usage,
+        currentUsage: data.current_usage,
+        expiresAt: data.expires_at,
+        createdBy: data.created_by,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      },
+    };
+  } catch (error) {
+    console.error('Error creating invitation code:', error);
+    return { success: false, error: 'Failed to create invitation code' };
+  }
+}
+
+/**
+ * PUT /admin/invitation-codes/:id
+ * Updates an invitation code (requires admin auth)
+ */
+export async function updateInvitationCode(
+  id: string,
+  codeData: Partial<Omit<InvitationCode, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>>
+): Promise<{ success: boolean; code?: InvitationCode; error?: string }> {
+  try {
+    const updatePayload: Record<string, unknown> = {};
+    
+    if (codeData.code !== undefined) updatePayload.code = codeData.code.toUpperCase().trim();
+    if (codeData.status !== undefined) updatePayload.status = codeData.status;
+    if (codeData.maxUsage !== undefined) updatePayload.max_usage = codeData.maxUsage;
+    if (codeData.currentUsage !== undefined) updatePayload.current_usage = codeData.currentUsage;
+    if (codeData.expiresAt !== undefined) updatePayload.expires_at = codeData.expiresAt;
+
+    const { data, error } = await supabase
+      .from('invitation_codes')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating invitation code:', error);
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      code: {
+        id: data.id,
+        code: data.code,
+        status: data.status as 'active' | 'disabled' | 'expired',
+        maxUsage: data.max_usage,
+        currentUsage: data.current_usage,
+        expiresAt: data.expires_at,
+        createdBy: data.created_by,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      },
+    };
+  } catch (error) {
+    console.error('Error updating invitation code:', error);
+    return { success: false, error: 'Failed to update invitation code' };
+  }
+}
+
+/**
+ * DELETE /admin/invitation-codes/:id
+ * Deletes an invitation code (requires admin auth)
+ */
+export async function deleteInvitationCode(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('invitation_codes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting invitation code:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting invitation code:', error);
+    return { success: false, error: 'Failed to delete invitation code' };
   }
 }
 

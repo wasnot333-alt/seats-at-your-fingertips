@@ -27,26 +27,41 @@ Deno.serve(async (req) => {
       );
     }
 
-    const upperCode = code.toUpperCase().trim();
-    console.log('Validating code:', upperCode);
+    // Normalize code: uppercase and trim
+    const normalizedCode = code.toUpperCase().trim();
+    console.log('Validating invitation code:', normalizedCode);
 
     // Create Supabase client with service role for backend validation
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch the access code
-    const { data: accessCode, error } = await supabase
-      .from('access_codes')
+    // Fetch the invitation code (case-insensitive lookup via uppercase index)
+    const { data: invitationCode, error } = await supabase
+      .from('invitation_codes')
       .select('*')
-      .eq('code', upperCode)
-      .single();
+      .ilike('code', normalizedCode)
+      .maybeSingle();
 
-    if (error || !accessCode) {
-      console.log('Code not found:', upperCode, error);
+    if (error) {
+      console.error('Database error fetching code:', error);
       return new Response(
         JSON.stringify({
-          code: upperCode,
+          code: normalizedCode,
+          isValid: false,
+          isExpired: false,
+          maxSeats: 0,
+          error: 'Database error'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!invitationCode) {
+      console.log('Code not found:', normalizedCode);
+      return new Response(
+        JSON.stringify({
+          code: normalizedCode,
           isValid: false,
           isExpired: false,
           maxSeats: 0,
@@ -55,30 +70,80 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if code is expired
-    const isExpired = accessCode.expires_at 
-      ? new Date(accessCode.expires_at) < new Date() 
+    // Check if code status is active
+    if (invitationCode.status !== 'active') {
+      console.log('Code is not active:', normalizedCode, 'Status:', invitationCode.status);
+      return new Response(
+        JSON.stringify({
+          code: normalizedCode,
+          isValid: false,
+          isExpired: invitationCode.status === 'expired',
+          maxSeats: 0,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if code is expired by date
+    const isDateExpired = invitationCode.expires_at 
+      ? new Date(invitationCode.expires_at) < new Date() 
       : false;
 
-    // Check if code is still active and has uses remaining
-    const isValid = accessCode.is_active && 
-                    !isExpired && 
-                    accessCode.current_uses < accessCode.max_uses;
+    if (isDateExpired) {
+      console.log('Code is date-expired:', normalizedCode);
+      // Auto-update status to expired
+      await supabase
+        .from('invitation_codes')
+        .update({ status: 'expired' })
+        .eq('id', invitationCode.id);
 
-    console.log('Code validation result:', { 
-      code: upperCode, 
-      isValid, 
-      isExpired,
-      currentUses: accessCode.current_uses,
-      maxUses: accessCode.max_uses 
+      return new Response(
+        JSON.stringify({
+          code: normalizedCode,
+          isValid: false,
+          isExpired: true,
+          maxSeats: 0,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if max usage reached
+    const isUsageLimitReached = invitationCode.max_usage !== null && 
+                                 invitationCode.current_usage >= invitationCode.max_usage;
+
+    if (isUsageLimitReached) {
+      console.log('Code usage limit reached:', normalizedCode);
+      // Auto-update status to expired
+      await supabase
+        .from('invitation_codes')
+        .update({ status: 'expired' })
+        .eq('id', invitationCode.id);
+
+      return new Response(
+        JSON.stringify({
+          code: normalizedCode,
+          isValid: false,
+          isExpired: true,
+          maxSeats: 0,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Code is valid!
+    console.log('Code validation successful:', { 
+      code: normalizedCode, 
+      currentUsage: invitationCode.current_usage,
+      maxUsage: invitationCode.max_usage 
     });
 
     return new Response(
       JSON.stringify({
-        code: upperCode,
-        isValid,
-        isExpired,
-        maxSeats: isValid ? 1 : 0,
+        code: normalizedCode,
+        isValid: true,
+        isExpired: false,
+        maxSeats: 1,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

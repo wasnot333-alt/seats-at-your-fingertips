@@ -30,32 +30,74 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const upperCode = code.toUpperCase().trim();
+    // Normalize code: uppercase and trim
+    const normalizedCode = code.toUpperCase().trim();
 
-    // Validate the code again
-    const { data: accessCode, error: codeError } = await supabase
-      .from('access_codes')
+    // Validate the invitation code
+    const { data: invitationCode, error: codeError } = await supabase
+      .from('invitation_codes')
       .select('*')
-      .eq('code', upperCode)
-      .single();
+      .ilike('code', normalizedCode)
+      .maybeSingle();
 
-    if (codeError || !accessCode) {
-      console.log('Invalid code:', upperCode);
+    if (codeError) {
+      console.error('Database error fetching code:', codeError);
       return new Response(
-        JSON.stringify({ success: false, error: 'Invalid booking code' }),
+        JSON.stringify({ success: false, error: 'Database error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!invitationCode) {
+      console.log('Invalid code:', normalizedCode);
+      return new Response(
+        JSON.stringify({ success: false, error: 'This invitation code is not valid. Please contact the Ashram.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if code is still valid
-    const isExpired = accessCode.expires_at 
-      ? new Date(accessCode.expires_at) < new Date() 
+    // Check if code status is active
+    if (invitationCode.status !== 'active') {
+      console.log('Code is not active:', normalizedCode, 'Status:', invitationCode.status);
+      return new Response(
+        JSON.stringify({ success: false, error: 'This invitation code is not valid. Please contact the Ashram.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if code is expired by date
+    const isDateExpired = invitationCode.expires_at 
+      ? new Date(invitationCode.expires_at) < new Date() 
       : false;
 
-    if (!accessCode.is_active || isExpired || accessCode.current_uses >= accessCode.max_uses) {
-      console.log('Code no longer valid:', { isActive: accessCode.is_active, isExpired, uses: accessCode.current_uses });
+    if (isDateExpired) {
+      console.log('Code is date-expired:', normalizedCode);
+      // Auto-update status to expired
+      await supabase
+        .from('invitation_codes')
+        .update({ status: 'expired' })
+        .eq('id', invitationCode.id);
+
       return new Response(
-        JSON.stringify({ success: false, error: 'Booking code is no longer valid' }),
+        JSON.stringify({ success: false, error: 'This invitation code is not valid. Please contact the Ashram.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if max usage reached
+    const isUsageLimitReached = invitationCode.max_usage !== null && 
+                                 invitationCode.current_usage >= invitationCode.max_usage;
+
+    if (isUsageLimitReached) {
+      console.log('Code usage limit reached:', normalizedCode);
+      // Auto-update status to expired
+      await supabase
+        .from('invitation_codes')
+        .update({ status: 'expired' })
+        .eq('id', invitationCode.id);
+
+      return new Response(
+        JSON.stringify({ success: false, error: 'This invitation code is not valid. Please contact the Ashram.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -91,7 +133,7 @@ Deno.serve(async (req) => {
         customer_name: userDetails.fullName,
         mobile_number: userDetails.mobileNumber,
         email: userDetails.email,
-        access_code_used: upperCode,
+        invitation_code_used: normalizedCode,
         status: 'booked',
       })
       .select()
@@ -117,10 +159,17 @@ Deno.serve(async (req) => {
     }
 
     // Increment code usage
+    const newUsage = invitationCode.current_usage + 1;
+    const shouldExpire = invitationCode.max_usage !== null && newUsage >= invitationCode.max_usage;
+    
     const { error: updateCodeError } = await supabase
-      .from('access_codes')
-      .update({ current_uses: accessCode.current_uses + 1 })
-      .eq('code', upperCode);
+      .from('invitation_codes')
+      .update({ 
+        current_usage: newUsage,
+        // Auto-expire if max usage reached
+        ...(shouldExpire ? { status: 'expired' } : {})
+      })
+      .eq('id', invitationCode.id);
 
     if (updateCodeError) {
       console.error('Failed to update code usage:', updateCodeError);
@@ -139,7 +188,7 @@ Deno.serve(async (req) => {
           customerName: booking.customer_name,
           mobileNumber: booking.mobile_number,
           email: booking.email,
-          codeUsed: booking.access_code_used,
+          codeUsed: booking.invitation_code_used,
           bookingTime: new Date(booking.booking_time).toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',

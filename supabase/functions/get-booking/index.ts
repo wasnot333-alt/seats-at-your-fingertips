@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
           customerName: booking.customer_name,
           mobileNumber: booking.mobile_number,
           email: booking.email,
-          codeUsed: booking.access_code_used,
+          codeUsed: booking.invitation_code_used,
           bookingTime: new Date(booking.booking_time).toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',

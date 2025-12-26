@@ -37,3 +37,17 @@ export interface BookingState {
   selectedSeat: Seat | null;
   userDetails: UserDetails | null;
 }
+
+export type InvitationCodeStatus = 'active' | 'disabled' | 'expired';
+
+export interface InvitationCode {
+  id: string;
+  code: string;
+  status: InvitationCodeStatus;
+  maxUsage: number | null;
+  currentUsage: number;
+  expiresAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
