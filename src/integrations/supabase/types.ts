@@ -53,6 +53,7 @@ export type Database = {
           invitation_code_used: string
           mobile_number: string
           seat_id: string
+          session_level: string
           status: string
         }
         Insert: {
@@ -63,6 +64,7 @@ export type Database = {
           invitation_code_used: string
           mobile_number: string
           seat_id: string
+          session_level?: string
           status?: string
         }
         Update: {
@@ -73,6 +75,7 @@ export type Database = {
           invitation_code_used?: string
           mobile_number?: string
           seat_id?: string
+          session_level?: string
           status?: string
         }
         Relationships: [
@@ -87,6 +90,7 @@ export type Database = {
       }
       invitation_codes: {
         Row: {
+          allowed_levels: string[]
           code: string
           created_at: string
           created_by: string | null
@@ -99,6 +103,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allowed_levels?: string[]
           code: string
           created_at?: string
           created_by?: string | null
@@ -111,6 +116,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allowed_levels?: string[]
           code?: string
           created_at?: string
           created_by?: string | null

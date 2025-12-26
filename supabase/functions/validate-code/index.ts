@@ -21,6 +21,7 @@ Deno.serve(async (req) => {
           isValid: false, 
           isExpired: false, 
           maxSeats: 0,
+          allowedLevels: [],
           error: 'Invalid code format' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -51,6 +52,7 @@ Deno.serve(async (req) => {
           isValid: false,
           isExpired: false,
           maxSeats: 0,
+          allowedLevels: [],
           error: 'Database error'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -65,6 +67,7 @@ Deno.serve(async (req) => {
           isValid: false,
           isExpired: false,
           maxSeats: 0,
+          allowedLevels: [],
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -79,6 +82,7 @@ Deno.serve(async (req) => {
           isValid: false,
           isExpired: invitationCode.status === 'expired',
           maxSeats: 0,
+          allowedLevels: [],
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -103,6 +107,7 @@ Deno.serve(async (req) => {
           isValid: false,
           isExpired: true,
           maxSeats: 0,
+          allowedLevels: [],
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -126,6 +131,7 @@ Deno.serve(async (req) => {
           isValid: false,
           isExpired: true,
           maxSeats: 0,
+          allowedLevels: [],
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -146,6 +152,7 @@ Deno.serve(async (req) => {
             isValid: false,
             isExpired: false,
             maxSeats: 0,
+            allowedLevels: [],
             error: 'Participant name does not match the invitation code.',
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -153,12 +160,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Get allowed levels (default to ['Level 1'] if not set)
+    const allowedLevels = invitationCode.allowed_levels || ['Level 1'];
+
     // Code is valid!
     console.log('Code validation successful:', { 
       code: normalizedCode, 
       currentUsage: invitationCode.current_usage,
       maxUsage: invitationCode.max_usage,
-      participantName: invitationCode.participant_name
+      participantName: invitationCode.participant_name,
+      allowedLevels: allowedLevels
     });
 
     return new Response(
@@ -169,6 +180,7 @@ Deno.serve(async (req) => {
         maxSeats: 1,
         participantName: invitationCode.participant_name,
         requiresNameMatch: hasParticipantName,
+        allowedLevels: allowedLevels,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -179,6 +191,7 @@ Deno.serve(async (req) => {
         isValid: false, 
         isExpired: false, 
         maxSeats: 0,
+        allowedLevels: [],
         error: 'Internal server error' 
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

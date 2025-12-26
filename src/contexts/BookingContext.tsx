@@ -3,7 +3,8 @@ import { BookingState, Seat, UserDetails, Booking } from '@/types/booking';
 
 interface BookingContextType {
   bookingState: BookingState;
-  setCode: (code: string) => void;
+  setCode: (code: string, allowedLevels?: string[]) => void;
+  setSelectedLevel: (level: string) => void;
   selectSeat: (seat: Seat | null) => void;
   setUserDetails: (details: UserDetails) => void;
   confirmedBooking: Booking | null;
@@ -13,6 +14,8 @@ interface BookingContextType {
 
 const initialState: BookingState = {
   code: '',
+  allowedLevels: [],
+  selectedLevel: null,
   selectedSeat: null,
   userDetails: null,
 };
@@ -23,8 +26,18 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [bookingState, setBookingState] = useState<BookingState>(initialState);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
-  const setCode = (code: string) => {
-    setBookingState(prev => ({ ...prev, code }));
+  const setCode = (code: string, allowedLevels?: string[]) => {
+    setBookingState(prev => ({ 
+      ...prev, 
+      code,
+      allowedLevels: allowedLevels || ['Level 1'],
+      // Auto-select level if only one is allowed
+      selectedLevel: allowedLevels && allowedLevels.length === 1 ? allowedLevels[0] : null
+    }));
+  };
+
+  const setSelectedLevel = (level: string) => {
+    setBookingState(prev => ({ ...prev, selectedLevel: level }));
   };
 
   const selectSeat = (seat: Seat | null) => {
@@ -45,6 +58,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       value={{
         bookingState,
         setCode,
+        setSelectedLevel,
         selectSeat,
         setUserDetails,
         confirmedBooking,

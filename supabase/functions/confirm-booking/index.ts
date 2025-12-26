@@ -12,15 +12,24 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { seatId, code, userDetails } = await req.json();
+    const { seatId, code, userDetails, sessionLevel } = await req.json();
 
-    console.log('Confirming booking:', { seatId, code, userDetails: { ...userDetails, email: '***' } });
+    console.log('Confirming booking:', { seatId, code, sessionLevel, userDetails: { ...userDetails, email: '***' } });
 
     // Validate required fields
     if (!seatId || !code || !userDetails?.fullName || !userDetails?.mobileNumber || !userDetails?.email) {
       console.log('Missing required fields');
       return new Response(
         JSON.stringify({ success: false, error: 'Missing required fields' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate session level
+    if (!sessionLevel) {
+      console.log('Missing session level');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Session level is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -32,6 +41,8 @@ Deno.serve(async (req) => {
 
     // Normalize code: uppercase and trim
     const normalizedCode = code.toUpperCase().trim();
+    // Normalize session level (case-insensitive comparison)
+    const normalizedLevel = sessionLevel.trim();
 
     // Validate the invitation code
     const { data: invitationCode, error: codeError } = await supabase
@@ -118,6 +129,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Validate session level is allowed for this code
+    const allowedLevels = invitationCode.allowed_levels || ['Level 1'];
+    const isLevelAllowed = allowedLevels.some(
+      (level: string) => level.toLowerCase() === normalizedLevel.toLowerCase()
+    );
+
+    if (!isLevelAllowed) {
+      console.log('Session level not allowed:', { requested: normalizedLevel, allowed: allowedLevels });
+      return new Response(
+        JSON.stringify({ success: false, error: `Your invitation code does not allow booking for ${normalizedLevel}. Allowed levels: ${allowedLevels.join(', ')}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check if seat is still available
     const { data: seat, error: seatError } = await supabase
       .from('seats')
@@ -133,10 +158,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (seat.status === 'booked') {
-      console.log('Seat already booked:', seatId);
+    // Check if seat is already booked for this session level
+    const { data: existingBooking, error: existingBookingError } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('seat_id', seatId)
+      .eq('session_level', normalizedLevel)
+      .eq('status', 'booked')
+      .maybeSingle();
+
+    if (existingBookingError) {
+      console.error('Error checking existing booking:', existingBookingError);
       return new Response(
-        JSON.stringify({ success: false, error: 'Seat is already booked' }),
+        JSON.stringify({ success: false, error: 'Error checking seat availability' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (existingBooking) {
+      console.log('Seat already booked for this level:', { seatId, sessionLevel: normalizedLevel });
+      return new Response(
+        JSON.stringify({ success: false, error: `This seat is already booked for ${normalizedLevel}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -150,6 +192,7 @@ Deno.serve(async (req) => {
         mobile_number: userDetails.mobileNumber,
         email: userDetails.email,
         invitation_code_used: normalizedCode,
+        session_level: normalizedLevel,
         status: 'booked',
       })
       .select()
@@ -163,16 +206,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update seat status
-    const { error: updateSeatError } = await supabase
-      .from('seats')
-      .update({ status: 'booked' })
-      .eq('seat_id', seatId);
-
-    if (updateSeatError) {
-      console.error('Failed to update seat status:', updateSeatError);
-      // Don't fail the whole request, booking is created
-    }
+    // Note: We don't update the seat status globally anymore since the same seat
+    // can be booked for different levels. The booking table with session_level
+    // is the source of truth for seat availability per level.
 
     // Increment code usage
     const newUsage = invitationCode.current_usage + 1;
@@ -205,6 +241,7 @@ Deno.serve(async (req) => {
           mobileNumber: booking.mobile_number,
           email: booking.email,
           codeUsed: booking.invitation_code_used,
+          sessionLevel: booking.session_level,
           bookingTime: new Date(booking.booking_time).toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',

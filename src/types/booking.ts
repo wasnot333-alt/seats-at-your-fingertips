@@ -14,6 +14,7 @@ export interface BookingCode {
   maxSeats: number;
   participantName?: string | null;
   requiresNameMatch?: boolean;
+  allowedLevels?: string[];
 }
 
 export interface UserDetails {
@@ -30,12 +31,15 @@ export interface Booking {
   mobileNumber: string;
   email: string;
   codeUsed: string;
+  sessionLevel?: string;
   bookingTime: string;
   status: 'booked' | 'available';
 }
 
 export interface BookingState {
   code: string;
+  allowedLevels: string[];
+  selectedLevel: string | null;
   selectedSeat: Seat | null;
   userDetails: UserDetails | null;
 }
@@ -53,4 +57,5 @@ export interface InvitationCode {
   createdAt: string;
   updatedAt: string;
   participantName: string | null;
+  allowedLevels: string[];
 }

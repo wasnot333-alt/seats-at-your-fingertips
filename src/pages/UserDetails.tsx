@@ -8,9 +8,10 @@ import { User, Phone, Mail, Flower2, Sparkles, Loader2, ArrowLeft } from 'lucide
 
 const steps = [
   { number: 1, title: 'Enter Code' },
-  { number: 2, title: 'Select Seat' },
-  { number: 3, title: 'Your Details' },
-  { number: 4, title: 'Confirmation' },
+  { number: 2, title: 'Select Level' },
+  { number: 3, title: 'Select Seat' },
+  { number: 4, title: 'Your Details' },
+  { number: 5, title: 'Confirmation' },
 ];
 
 export default function UserDetails() {
@@ -64,7 +65,8 @@ export default function UserDetails() {
       const result = await confirmBooking(
         bookingState.selectedSeat!.id,
         bookingState.code,
-        formData
+        formData,
+        bookingState.selectedLevel || 'Level 1'
       );
 
       if (result.success && result.booking) {
@@ -89,7 +91,7 @@ export default function UserDetails() {
   return (
     <PageContainer>
       <div className="container mx-auto px-6">
-        <StepIndicator steps={steps} currentStep={3} />
+        <StepIndicator steps={steps} currentStep={4} />
 
         {/* Title */}
         <div className="text-center mb-10 animate-fade-up">
