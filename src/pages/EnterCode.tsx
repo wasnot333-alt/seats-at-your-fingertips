@@ -131,13 +131,6 @@ export default function EnterCode() {
             </a>
           </p>
 
-          {/* Demo codes hint */}
-          <div className="mt-8 p-4 rounded-xl bg-secondary/50 border border-border">
-            <p className="text-xs text-muted-foreground text-center">
-              <span className="font-semibold text-foreground">Demo codes:</span>{' '}
-              TEST123, VIP2024, GOLD2024
-            </p>
-          </div>
         </div>
       </div>
     </PageContainer>
