@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { format } from 'date-fns';
 import { Booking } from '@/types/booking';
 import { User, Sparkles, Calendar, Armchair, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,16 @@ const displayValue = (value: string | null | undefined, fallback = 'Not Availabl
 export default function BookingTicket({ booking }: BookingTicketProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
 
-  // Generate QR code value in format BOOKING::<booking_id>
-  const qrCodeValue = `BOOKING::${booking.id}`;
+// Format booking time
+  const formatBookingTime = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'Not Available';
+    try {
+      const date = new Date(dateString);
+      return format(date, "MMM dd, yyyy – hh:mm a");
+    } catch {
+      return 'Not Available';
+    }
+  };
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -66,8 +74,6 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
             .detail-row:last-child { border-bottom: none; }
             .detail-label { font-size: 12px; color: #737373; }
             .detail-value { font-size: 14px; font-weight: 500; color: #171717; }
-            .qr-section { text-align: center; margin-top: 24px; padding-top: 20px; border-top: 2px dashed #d4af37; }
-            .qr-section p { font-size: 10px; color: #a3a3a3; margin-top: 8px; }
             .footer { text-align: center; margin-top: 20px; font-size: 14px; color: #92400e; }
             @media print {
               body { background: white; }
@@ -138,7 +144,7 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
               <Calendar className="w-4 h-4" /> Booked On
             </span>
             <span className="detail-value text-sm font-medium text-foreground">
-              {displayValue(booking.bookingTime)}
+              {formatBookingTime(booking.bookingTime)}
             </span>
           </div>
           <div className="detail-row flex justify-between items-center py-2">
@@ -146,22 +152,9 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
               <Armchair className="w-4 h-4" /> Booking ID
             </span>
             <span className="detail-value text-xs font-mono text-muted-foreground">
-              {booking.id ? booking.id.slice(0, 8) : 'Not Available'}
+              {displayValue(booking.id)}
             </span>
           </div>
-        </div>
-
-        {/* QR Code */}
-        <div className="qr-section text-center border-t-2 border-dashed border-primary/30 pt-4">
-          <QRCodeSVG 
-            value={qrCodeValue}
-            size={120}
-            level="H"
-            className="mx-auto"
-            bgColor="transparent"
-            fgColor="#92400e"
-          />
-          <p className="text-xs text-muted-foreground mt-2">Scan at event for verification</p>
         </div>
 
         {/* Footer */}
