@@ -21,12 +21,16 @@ import {
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-type DisplayBooking = Omit<Booking, 'id' | 'seatNumber' | 'seatId' | 'sessionLevel' | 'bookingTime'> & {
+type DisplayBooking = Omit<
+  Booking,
+  'id' | 'seatNumber' | 'seatId' | 'sessionLevel' | 'bookingTime'
+> & {
   id: string;
   seatNumber: string;
   seatId: string;
   sessionLevel: string;
   bookingTime: string;
+  seatsByLevel: { level: string; seat: string }[];
 };
 
 function sortLevels(levels: string[]) {
@@ -67,39 +71,49 @@ export default function Admin() {
   };
 
   const displayBookings = useMemo<DisplayBooking[]>(() => {
-    // Group by participant + code (email is stable), so multi-level bookings show as one row.
+    // Group by invitation code + email (most stable) so multi-level bookings show as one row.
     const groups = new Map<string, Booking[]>();
 
     for (const b of bookings) {
-      const key = `${b.codeUsed.toLowerCase()}::${b.email.toLowerCase()}::${b.customerName.toLowerCase()}`;
+      const key = `${b.codeUsed.toLowerCase().trim()}::${b.email.toLowerCase().trim()}`;
       const list = groups.get(key) || [];
       list.push(b);
       groups.set(key, list);
     }
 
+    const getLevelNum = (l: string) => {
+      const m = l.match(/(\d+)/);
+      return m ? Number(m[1]) : 999;
+    };
+
     const result: DisplayBooking[] = [];
 
     for (const list of groups.values()) {
       const base = list[0];
-      const levels = sortLevels(
+      const uniqueLevels = sortLevels(
         Array.from(new Set(list.map((x) => (x.sessionLevel || 'Level 1').trim())))
       );
-      const seats = Array.from(new Set(list.map((x) => x.seatNumber))).sort();
 
       // Use latest booking time among grouped rows
       const latest = list.reduce((acc, cur) => (acc.bookingTime > cur.bookingTime ? acc : cur));
 
+      const seatsByLevel = [...list]
+        .sort((a, b) => getLevelNum(a.sessionLevel || 'Level 1') - getLevelNum(b.sessionLevel || 'Level 1'))
+        .map((b) => ({ level: b.sessionLevel || 'Level 1', seat: b.seatNumber }));
+
+      const uniqueSeats = Array.from(new Set(seatsByLevel.map((x) => x.seat)));
+
       result.push({
         ...base,
         id: `group-${base.id}`,
-        seatId: seats[0] || base.seatId,
-        seatNumber: seats.join(', '),
-        sessionLevel: levels.join(' + '),
+        seatId: uniqueSeats[0] || base.seatId,
+        seatNumber: uniqueSeats.join(', '),
+        sessionLevel: uniqueLevels.join(' + '),
         bookingTime: latest.bookingTime,
+        seatsByLevel,
       });
     }
 
-    // Keep newest first (based on formatted string is not ideal, but consistent with existing UI)
     return result;
   }, [bookings]);
 
@@ -278,9 +292,23 @@ export default function Admin() {
                       {filteredBookings.map((booking) => (
                         <tr key={booking.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
                           <td className="px-6 py-4">
-                            <span className="inline-flex items-center justify-center min-w-12 h-12 px-3 rounded-xl bg-primary/10 font-display font-bold text-primary">
-                              {booking.seatNumber}
-                            </span>
+                            {booking.seatsByLevel.length <= 1 ? (
+                              <span className="inline-flex items-center justify-center min-w-12 h-12 px-3 rounded-xl bg-primary/10 font-display font-bold text-primary">
+                                {booking.seatsByLevel[0]?.seat || booking.seatNumber}
+                              </span>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {booking.seatsByLevel.map(({ level, seat }) => (
+                                  <span
+                                    key={`${level}-${seat}`}
+                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary"
+                                  >
+                                    <span className="text-xs font-semibold">{level.replace('Level ', 'L')}</span>
+                                    <span className="font-display font-bold">{seat}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             <span className="font-medium text-foreground">{booking.customerName}</span>
