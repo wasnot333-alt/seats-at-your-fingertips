@@ -25,6 +25,7 @@ interface ImportRow {
   participant_name?: string;
   expires_at?: string;
   max_usage?: number;
+  allowed_levels?: string[];
   isValid: boolean;
   error?: string;
 }
@@ -84,6 +85,31 @@ export default function BulkImportCodes({
     return null;
   };
 
+  const parseLevels = (value: unknown): string[] => {
+    if (!value) return ['Level 1'];
+    
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return ['Level 1'];
+      
+      // Parse comma-separated or semicolon-separated levels
+      const levels = trimmed.split(/[,;]/).map(l => l.trim()).filter(Boolean);
+      
+      // Normalize level names
+      const validLevels = levels.map(l => {
+        const lowerL = l.toLowerCase();
+        if (lowerL.includes('1') || lowerL === 'level 1' || lowerL === 'l1') return 'Level 1';
+        if (lowerL.includes('2') || lowerL === 'level 2' || lowerL === 'l2') return 'Level 2';
+        if (lowerL.includes('3') || lowerL === 'level 3' || lowerL === 'l3') return 'Level 3';
+        return l;
+      }).filter(l => ['Level 1', 'Level 2', 'Level 3'].includes(l));
+      
+      return validLevels.length > 0 ? [...new Set(validLevels)] : ['Level 1'];
+    }
+    
+    return ['Level 1'];
+  };
+
   const validateRow = (row: Partial<ImportRow>, existingInFile: Set<string>): ImportRow => {
     const code = (row.code || '').toString().trim().toUpperCase();
     
@@ -108,6 +134,7 @@ export default function BulkImportCodes({
       participant_name: row.participant_name?.toString().trim() || undefined,
       expires_at: row.expires_at || undefined,
       max_usage: row.max_usage || 1,
+      allowed_levels: row.allowed_levels || ['Level 1'],
       isValid: true,
     };
   };
@@ -143,6 +170,8 @@ export default function BulkImportCodes({
             } else if (lowerKey === 'max_usage' || lowerKey === 'maxusage' || lowerKey === 'max') {
               const numVal = parseInt(value as string, 10);
               normalizedRow.max_usage = isNaN(numVal) ? 1 : numVal;
+            } else if (lowerKey === 'allowed_levels' || lowerKey === 'allowedlevels' || lowerKey === 'levels') {
+              normalizedRow.allowed_levels = parseLevels(value);
             }
           });
 
@@ -192,6 +221,7 @@ export default function BulkImportCodes({
         participant_name: row.participant_name || null,
         expires_at: row.expires_at || null,
         max_usage: row.max_usage || 1,
+        allowed_levels: row.allowed_levels || ['Level 1'],
         status: 'active' as const,
         created_by: user?.id || null,
       }));
@@ -262,6 +292,7 @@ export default function BulkImportCodes({
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• <code className="text-primary">code</code> - Invitation code (required)</li>
                   <li>• <code className="text-primary">participant_name</code> - Participant name (optional)</li>
+                  <li>• <code className="text-primary">allowed_levels</code> - Comma-separated: Level 1, Level 2, Level 3 (optional, default: Level 1)</li>
                   <li>• <code className="text-primary">expires_at</code> - Expiry date (optional)</li>
                   <li>• <code className="text-primary">max_usage</code> - Max usage count (default: 1)</li>
                 </ul>
@@ -306,6 +337,7 @@ export default function BulkImportCodes({
                       <th className="text-left px-4 py-3 font-semibold text-foreground">Status</th>
                       <th className="text-left px-4 py-3 font-semibold text-foreground">Code</th>
                       <th className="text-left px-4 py-3 font-semibold text-foreground">Participant</th>
+                      <th className="text-left px-4 py-3 font-semibold text-foreground">Levels</th>
                       <th className="text-left px-4 py-3 font-semibold text-foreground">Max Usage</th>
                       <th className="text-left px-4 py-3 font-semibold text-foreground">Expires</th>
                     </tr>
@@ -335,6 +367,9 @@ export default function BulkImportCodes({
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {row.participant_name || '—'}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">
+                          {row.allowed_levels?.join(', ') || 'Level 1'}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {row.max_usage || 1}

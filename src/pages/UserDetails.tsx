@@ -107,7 +107,7 @@ export default function UserDetails() {
           {/* Reservation Summary Card */}
           <div className="glass-card animate-fade-up" style={{ animationDelay: '100ms' }}>
             <h2 className="text-lg font-semibold text-foreground mb-4">Reservation Summary</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Flower2 className="w-5 h-5 text-primary" />
@@ -116,6 +116,17 @@ export default function UserDetails() {
                   <p className="text-xs text-muted-foreground">Meditation Seat</p>
                   <p className="text-lg font-bold text-foreground">
                     {bookingState.selectedSeat?.id}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
+                <div className="p-2 rounded-lg bg-purple-500/10">
+                  <Sparkles className="w-5 h-5 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Session Level</p>
+                  <p className="text-lg font-bold text-purple-600">
+                    {bookingState.selectedLevel || 'Level 1'}
                   </p>
                 </div>
               </div>

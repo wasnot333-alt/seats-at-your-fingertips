@@ -19,6 +19,7 @@ import {
   Key,
   User,
   Upload,
+  Sparkles,
 } from 'lucide-react';
 import {
   Dialog,
@@ -30,6 +31,7 @@ import BulkImportCodes from './BulkImportCodes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -38,6 +40,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+
+const AVAILABLE_LEVELS = ['Level 1', 'Level 2', 'Level 3'];
 
 export default function InvitationCodesManager() {
   const [codes, setCodes] = useState<InvitationCode[]>([]);
@@ -57,6 +61,7 @@ export default function InvitationCodesManager() {
   const [formStatus, setFormStatus] = useState<InvitationCodeStatus>('active');
   const [formMaxUsage, setFormMaxUsage] = useState<string>('1');
   const [formExpiresAt, setFormExpiresAt] = useState<string>('');
+  const [formAllowedLevels, setFormAllowedLevels] = useState<string[]>(['Level 1']);
 
   useEffect(() => {
     loadCodes();
@@ -98,6 +103,7 @@ export default function InvitationCodesManager() {
     setFormStatus('active');
     setFormMaxUsage('1');
     setFormExpiresAt('');
+    setFormAllowedLevels(['Level 1']);
     setEditingCode(null);
   };
 
@@ -113,7 +119,22 @@ export default function InvitationCodesManager() {
     setFormStatus(code.status);
     setFormMaxUsage(code.maxUsage?.toString() || '');
     setFormExpiresAt(code.expiresAt ? code.expiresAt.slice(0, 16) : '');
+    setFormAllowedLevels(code.allowedLevels || ['Level 1']);
     setDialogOpen(true);
+  };
+
+  const handleLevelToggle = (level: string) => {
+    setFormAllowedLevels(prev => {
+      if (prev.includes(level)) {
+        // Don't allow removing the last level
+        if (prev.length === 1) {
+          toast.error('At least one level must be selected');
+          return prev;
+        }
+        return prev.filter(l => l !== level);
+      }
+      return [...prev, level];
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,6 +142,11 @@ export default function InvitationCodesManager() {
     
     if (!formCode.trim()) {
       toast.error('Code is required');
+      return;
+    }
+
+    if (formAllowedLevels.length === 0) {
+      toast.error('At least one level must be selected');
       return;
     }
 
@@ -133,7 +159,7 @@ export default function InvitationCodesManager() {
         maxUsage: formMaxUsage ? parseInt(formMaxUsage, 10) : null,
         expiresAt: formExpiresAt || null,
         createdBy: null,
-        allowedLevels: ['Level 1'],
+        allowedLevels: formAllowedLevels,
       };
 
       if (editingCode) {
@@ -222,6 +248,28 @@ export default function InvitationCodesManager() {
           </span>
         );
     }
+  };
+
+  const getLevelBadges = (levels: string[]) => {
+    const colorMap: Record<string, string> = {
+      'Level 1': 'bg-blue-500/10 text-blue-500',
+      'Level 2': 'bg-purple-500/10 text-purple-500',
+      'Level 3': 'bg-amber-500/10 text-amber-500',
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {levels.map(level => (
+          <span 
+            key={level} 
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${colorMap[level] || 'bg-primary/10 text-primary'}`}
+          >
+            <Sparkles className="w-3 h-3" />
+            {level.replace('Level ', 'L')}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -335,6 +383,7 @@ export default function InvitationCodesManager() {
                 <tr className="border-b border-border bg-secondary/30">
                   <th className="text-left px-6 py-4 font-semibold text-foreground">Code</th>
                   <th className="text-left px-6 py-4 font-semibold text-foreground">Participant</th>
+                  <th className="text-left px-6 py-4 font-semibold text-foreground">Levels</th>
                   <th className="text-left px-6 py-4 font-semibold text-foreground">Status</th>
                   <th className="text-left px-6 py-4 font-semibold text-foreground hidden md:table-cell">Usage</th>
                   <th className="text-left px-6 py-4 font-semibold text-foreground hidden lg:table-cell">Expires</th>
@@ -361,6 +410,9 @@ export default function InvitationCodesManager() {
                       ) : (
                         <span className="text-muted-foreground text-sm">Not assigned</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {getLevelBadges(code.allowedLevels)}
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(code.status)}</td>
                     <td className="px-6 py-4 text-muted-foreground hidden md:table-cell">
@@ -458,6 +510,40 @@ export default function InvitationCodesManager() {
               />
               <p className="text-xs text-muted-foreground">
                 If set, only this person can use the code (strict name match).
+              </p>
+            </div>
+
+            {/* Allowed Levels */}
+            <div className="space-y-3">
+              <Label>Allowed Meditation Levels *</Label>
+              <div className="grid gap-2">
+                {AVAILABLE_LEVELS.map(level => (
+                  <div
+                    key={level}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                      formAllowedLevels.includes(level) 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    onClick={() => handleLevelToggle(level)}
+                  >
+                    <Checkbox
+                      checked={formAllowedLevels.includes(level)}
+                      onCheckedChange={() => handleLevelToggle(level)}
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium text-foreground">{level}</span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        {level === 'Level 1' && '– Foundation'}
+                        {level === 'Level 2' && '– Awakening'}
+                        {level === 'Level 3' && '– Higher Consciousness'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Select which meditation levels this code grants access to.
               </p>
             </div>
 

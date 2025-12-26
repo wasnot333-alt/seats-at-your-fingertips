@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { format } from 'date-fns';
 import { Booking } from '@/types/booking';
-import { User, Sparkles, Calendar, Armchair, Printer } from 'lucide-react';
+import { User, Sparkles, Calendar, Armchair, Printer, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import guruImage from '@/assets/guru-bhaiyaji.jpg';
 
@@ -69,6 +69,7 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
             .seat-section { text-align: center; margin: 24px 0; }
             .seat-number { font-size: 48px; font-weight: bold; color: #92400e; }
             .seat-label { font-size: 12px; color: #a3a3a3; text-transform: uppercase; letter-spacing: 2px; }
+            .session-level { font-size: 16px; color: #7c3aed; font-weight: 600; margin-top: 8px; }
             .details { margin: 24px 0; }
             .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e5e5; }
             .detail-row:last-child { border-bottom: none; }
@@ -119,6 +120,12 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
           <p className="seat-number text-5xl font-display font-bold text-amber-800">
             {displayValue(booking.seatNumber)}
           </p>
+          {booking.sessionLevel && (
+            <p className="session-level text-lg font-semibold text-purple-600 mt-2 flex items-center justify-center gap-2">
+              <Zap className="w-4 h-4" />
+              {booking.sessionLevel}
+            </p>
+          )}
         </div>
 
         {/* Details */}

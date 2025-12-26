@@ -4,13 +4,14 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { SeatLayout } from '@/components/booking/SeatLayout';
 import { StepIndicator } from '@/components/ui/step-indicator';
 import { useBooking } from '@/contexts/BookingContext';
-import { ArrowRight, Flower2 } from 'lucide-react';
+import { ArrowRight, Flower2, Sparkles } from 'lucide-react';
 
 const steps = [
   { number: 1, title: 'Enter Code' },
-  { number: 2, title: 'Select Seat' },
-  { number: 3, title: 'Your Details' },
-  { number: 4, title: 'Confirmation' },
+  { number: 2, title: 'Select Level' },
+  { number: 3, title: 'Select Seat' },
+  { number: 4, title: 'Your Details' },
+  { number: 5, title: 'Confirmation' },
 ];
 
 export default function SelectSeat() {
@@ -20,8 +21,13 @@ export default function SelectSeat() {
   useEffect(() => {
     if (!bookingState.code) {
       navigate('/');
+      return;
     }
-  }, [bookingState.code, navigate]);
+    // Ensure a level is selected
+    if (!bookingState.selectedLevel) {
+      navigate('/select-level');
+    }
+  }, [bookingState.code, bookingState.selectedLevel, navigate]);
 
   const handleContinue = () => {
     if (bookingState.selectedSeat) {
@@ -32,7 +38,7 @@ export default function SelectSeat() {
   return (
     <PageContainer>
       <div className="container mx-auto px-6">
-        <StepIndicator steps={steps} currentStep={2} />
+        <StepIndicator steps={steps} currentStep={3} />
 
         {/* Title */}
         <div className="text-center mb-10 animate-fade-up">
@@ -44,11 +50,16 @@ export default function SelectSeat() {
           </p>
         </div>
 
-        {/* Code Display */}
-        <div className="flex justify-center mb-8">
+        {/* Code & Level Display */}
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
             <span className="text-sm text-muted-foreground">Invitation Code:</span>
             <span className="font-mono font-semibold text-primary">{bookingState.code}</span>
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20">
+            <Sparkles className="w-4 h-4 text-purple-500" />
+            <span className="text-sm text-muted-foreground">Session:</span>
+            <span className="font-semibold text-purple-500">{bookingState.selectedLevel}</span>
           </div>
         </div>
 

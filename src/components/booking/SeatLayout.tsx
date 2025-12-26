@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Seat } from './Seat';
 import { Seat as SeatType } from '@/types/booking';
-import { getSeats } from '@/services/api';
+import { getSeatsForLevel } from '@/services/api';
 import { useBooking } from '@/contexts/BookingContext';
 import { Loader2 } from 'lucide-react';
 
@@ -12,11 +12,14 @@ export function SeatLayout() {
 
   useEffect(() => {
     loadSeats();
-  }, []);
+  }, [bookingState.selectedLevel]);
 
   const loadSeats = async () => {
     try {
-      const fetchedSeats = await getSeats();
+      setLoading(true);
+      // Fetch seats with availability for the selected session level
+      const sessionLevel = bookingState.selectedLevel || 'Level 1';
+      const fetchedSeats = await getSeatsForLevel(sessionLevel);
       setSeats(fetchedSeats);
     } catch (error) {
       console.error('Failed to load seats:', error);
