@@ -100,12 +100,6 @@ export default function Index() {
                     </div>
                   </div>
                 </div>
-
-                <div className="p-4 rounded-xl bg-accent/10 border border-accent/20 text-center">
-                  <p className="text-sm text-muted-foreground mb-1">Session Fees</p>
-                  <p className="text-2xl font-bold text-foreground">₹20,000</p>
-                  <p className="text-xs text-accent mt-1">(Fees Already Paid — This Website is Only for Meditation Seat Reservation)</p>
-                </div>
               </div>
 
               <div className="border-t border-border pt-6">
