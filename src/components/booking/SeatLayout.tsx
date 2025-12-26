@@ -33,14 +33,16 @@ export function SeatLayout() {
     }
   };
 
-  const rows = ['A', 'B', 'C'];
+  // 18 rows: A to R
+  const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R'];
 
   const getSeatsForRow = (row: string, side: 'left' | 'right') => {
     return seats.filter(seat => {
       if (seat.row !== row) return false;
+      // Left side: seats 1-5, Right side: seats 6-10
       if (side === 'left') return seat.number <= 5;
       return seat.number > 5;
-    });
+    }).sort((a, b) => a.number - b.number);
   };
 
   if (loading) {
