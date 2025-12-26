@@ -102,6 +102,22 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate participant name if set on the code
+    const hasParticipantName = invitationCode.participant_name !== null && invitationCode.participant_name.trim() !== '';
+    
+    if (hasParticipantName) {
+      const normalizedProvidedName = userDetails.fullName.toUpperCase().trim();
+      const normalizedStoredName = invitationCode.participant_name.toUpperCase().trim();
+      
+      if (normalizedProvidedName !== normalizedStoredName) {
+        console.log('Participant name mismatch:', { provided: normalizedProvidedName, stored: normalizedStoredName });
+        return new Response(
+          JSON.stringify({ success: false, error: 'Your name does not match the invitation. Please ensure you enter the exact name associated with this invitation code.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // Check if seat is still available
     const { data: seat, error: seatError } = await supabase
       .from('seats')

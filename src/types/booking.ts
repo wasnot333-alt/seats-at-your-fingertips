@@ -12,6 +12,8 @@ export interface BookingCode {
   isValid: boolean;
   isExpired: boolean;
   maxSeats: number;
+  participantName?: string | null;
+  requiresNameMatch?: boolean;
 }
 
 export interface UserDetails {
@@ -50,4 +52,5 @@ export interface InvitationCode {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  participantName: string | null;
 }

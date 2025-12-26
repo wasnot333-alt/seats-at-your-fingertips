@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { code } = await req.json();
+    const { code, participantName } = await req.json();
 
     if (!code || typeof code !== 'string') {
       console.log('Invalid code provided:', code);
@@ -131,11 +131,34 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check if code has participant_name and validate if provided
+    const hasParticipantName = invitationCode.participant_name !== null && invitationCode.participant_name.trim() !== '';
+    
+    if (hasParticipantName && participantName) {
+      const normalizedProvidedName = participantName.toUpperCase().trim();
+      const normalizedStoredName = invitationCode.participant_name.toUpperCase().trim();
+      
+      if (normalizedProvidedName !== normalizedStoredName) {
+        console.log('Participant name mismatch:', { provided: normalizedProvidedName, stored: normalizedStoredName });
+        return new Response(
+          JSON.stringify({
+            code: normalizedCode,
+            isValid: false,
+            isExpired: false,
+            maxSeats: 0,
+            error: 'Participant name does not match the invitation code.',
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // Code is valid!
     console.log('Code validation successful:', { 
       code: normalizedCode, 
       currentUsage: invitationCode.current_usage,
-      maxUsage: invitationCode.max_usage 
+      maxUsage: invitationCode.max_usage,
+      participantName: invitationCode.participant_name
     });
 
     return new Response(
@@ -144,6 +167,8 @@ Deno.serve(async (req) => {
         isValid: true,
         isExpired: false,
         maxSeats: 1,
+        participantName: invitationCode.participant_name,
+        requiresNameMatch: hasParticipantName,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -176,6 +176,7 @@ export async function getInvitationCodes(): Promise<InvitationCode[]> {
       createdBy: code.created_by,
       createdAt: code.created_at,
       updatedAt: code.updated_at,
+      participantName: code.participant_name,
     }));
   } catch (error) {
     console.error('Error fetching invitation codes:', error);
@@ -201,6 +202,7 @@ export async function createInvitationCode(
         max_usage: codeData.maxUsage,
         expires_at: codeData.expiresAt,
         created_by: user?.id,
+        participant_name: codeData.participantName || null,
       })
       .select()
       .single();
@@ -222,6 +224,7 @@ export async function createInvitationCode(
         createdBy: data.created_by,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        participantName: data.participant_name,
       },
     };
   } catch (error) {
@@ -246,6 +249,7 @@ export async function updateInvitationCode(
     if (codeData.maxUsage !== undefined) updatePayload.max_usage = codeData.maxUsage;
     if (codeData.currentUsage !== undefined) updatePayload.current_usage = codeData.currentUsage;
     if (codeData.expiresAt !== undefined) updatePayload.expires_at = codeData.expiresAt;
+    if (codeData.participantName !== undefined) updatePayload.participant_name = codeData.participantName;
 
     const { data, error } = await supabase
       .from('invitation_codes')
@@ -271,6 +275,7 @@ export async function updateInvitationCode(
         createdBy: data.created_by,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        participantName: data.participant_name,
       },
     };
   } catch (error) {
@@ -303,17 +308,63 @@ export async function deleteInvitationCode(id: string): Promise<{ success: boole
 }
 
 /**
- * Export to Excel placeholder
+ * Export bookings to Excel file
  */
 export async function exportToExcel(bookings: Booking[]): Promise<void> {
-  console.log('Export to Excel:', bookings);
-  alert('Export to Excel functionality will be implemented');
+  const XLSX = await import('xlsx');
+  
+  const worksheetData = bookings.map((booking, index) => ({
+    'S.No': index + 1,
+    'Booking ID': booking.id,
+    'Seat Number': booking.seatNumber,
+    'Customer Name': booking.customerName,
+    'Mobile Number': booking.mobileNumber,
+    'Email': booking.email,
+    'Invitation Code': booking.codeUsed,
+    'Booking Time': booking.bookingTime,
+    'Status': booking.status,
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
+  
+  // Auto-size columns
+  const colWidths = [
+    { wch: 6 },  // S.No
+    { wch: 38 }, // Booking ID
+    { wch: 12 }, // Seat Number
+    { wch: 25 }, // Customer Name
+    { wch: 15 }, // Mobile Number
+    { wch: 30 }, // Email
+    { wch: 15 }, // Invitation Code
+    { wch: 22 }, // Booking Time
+    { wch: 10 }, // Status
+  ];
+  worksheet['!cols'] = colWidths;
+
+  XLSX.writeFile(workbook, `bookings_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 /**
- * Export to PDF placeholder
+ * Export invitation codes to Excel file
  */
-export async function exportToPdf(bookings: Booking[]): Promise<void> {
-  console.log('Export to PDF:', bookings);
-  alert('Export to PDF functionality will be implemented');
+export async function exportCodesToExcel(codes: InvitationCode[]): Promise<void> {
+  const XLSX = await import('xlsx');
+  
+  const worksheetData = codes.map((code, index) => ({
+    'S.No': index + 1,
+    'Code': code.code,
+    'Participant Name': code.participantName || 'Not assigned',
+    'Status': code.status,
+    'Usage': `${code.currentUsage}${code.maxUsage !== null ? ` / ${code.maxUsage}` : ' / ∞'}`,
+    'Expires At': code.expiresAt ? new Date(code.expiresAt).toLocaleString() : 'Never',
+    'Created At': new Date(code.createdAt).toLocaleString(),
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Invitation Codes');
+  
+  XLSX.writeFile(workbook, `invitation_codes_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
