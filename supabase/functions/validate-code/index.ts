@@ -172,12 +172,18 @@ Deno.serve(async (req) => {
       allowedLevels: allowedLevels
     });
 
+    // Remaining usage maps to how many levels can still be booked with this code.
+    // If max_usage is null, we treat it as "unlimited", but UI can only book up to allowedLevels.
+    const remainingUsage = invitationCode.max_usage !== null
+      ? Math.max(invitationCode.max_usage - invitationCode.current_usage, 0)
+      : allowedLevels.length;
+
     return new Response(
       JSON.stringify({
         code: normalizedCode,
         isValid: true,
         isExpired: false,
-        maxSeats: 1,
+        maxSeats: remainingUsage,
         participantName: invitationCode.participant_name,
         requiresNameMatch: hasParticipantName,
         allowedLevels: allowedLevels,

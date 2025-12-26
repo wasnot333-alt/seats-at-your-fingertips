@@ -3,7 +3,7 @@ import { BookingState, Seat, UserDetails, Booking } from '@/types/booking';
 
 interface BookingContextType {
   bookingState: BookingState;
-  setCode: (code: string, allowedLevels?: string[]) => void;
+  setCode: (code: string, allowedLevels?: string[], maxSeats?: number) => void;
   setSelectedLevels: (levels: string[]) => void;
   setSelectedLevel: (level: string) => void;
   selectSeat: (seat: Seat | null) => void;
@@ -20,6 +20,7 @@ interface BookingContextType {
 const initialState: BookingState = {
   code: '',
   allowedLevels: [],
+  maxSeats: 1,
   selectedLevels: [],
   selectedLevel: null,
   selectedSeat: null,
@@ -34,34 +35,44 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [confirmedBookings, setConfirmedBookings] = useState<Booking[]>([]);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
-  const setCode = (code: string, allowedLevels?: string[]) => {
+  const setCode = (code: string, allowedLevels?: string[], maxSeats?: number) => {
     const levels = allowedLevels || ['Level 1'];
-    setBookingState(prev => ({ 
-      ...prev, 
+    const allowedCount = levels.length;
+    const computedMaxSeats = typeof maxSeats === 'number' && Number.isFinite(maxSeats)
+      ? Math.max(0, Math.min(maxSeats, allowedCount))
+      : allowedCount;
+
+    const initialSelectedLevels = levels.slice(0, Math.max(1, computedMaxSeats));
+
+    setBookingState((prev) => ({
+      ...prev,
       code,
       allowedLevels: levels,
-      // Auto-select all levels if multiple allowed, or just the one
-      selectedLevels: levels,
+      maxSeats: computedMaxSeats,
+      // Auto-select up to maxSeats levels (at least 1)
+      selectedLevels: initialSelectedLevels,
       // Auto-select first level for editing
-      selectedLevel: levels[0] || null,
+      selectedLevel: initialSelectedLevels[0] || null,
       levelSeats: {},
     }));
   };
 
   const setSelectedLevels = (levels: string[]) => {
-    setBookingState(prev => {
+    setBookingState((prev) => {
       // Clean up seats for deselected levels
       const newLevelSeats = { ...prev.levelSeats };
-      Object.keys(newLevelSeats).forEach(level => {
+      Object.keys(newLevelSeats).forEach((level) => {
         if (!levels.includes(level)) {
           delete newLevelSeats[level];
         }
       });
-      return { 
-        ...prev, 
+      return {
+        ...prev,
         selectedLevels: levels,
         levelSeats: newLevelSeats,
         selectedLevel: levels[0] || null,
+        // Ensure maxSeats never exceeds current allowedLevels length
+        maxSeats: Math.min(prev.maxSeats || 1, prev.allowedLevels.length || 1),
       };
     });
   };

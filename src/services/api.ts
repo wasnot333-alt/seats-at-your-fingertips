@@ -143,20 +143,43 @@ export async function confirmMultiBooking(
   code: string,
   userDetails: UserDetails
 ): Promise<{ success: boolean; bookings?: Booking[]; error?: string }> {
+  const tryReadFunctionError = async (fnError: unknown): Promise<string> => {
+    const anyErr = fnError as any;
+
+    // Supabase FunctionsHttpError sometimes carries a Response in context.response
+    const res: Response | undefined = anyErr?.context?.response;
+    if (res) {
+      try {
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          return json?.error || json?.message || anyErr?.message || 'Failed to confirm bookings';
+        } catch {
+          return text || anyErr?.message || 'Failed to confirm bookings';
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return anyErr?.message || 'Failed to confirm bookings';
+  };
+
   try {
     const { data, error } = await supabase.functions.invoke('confirm-multi-booking', {
       body: { bookings, code, userDetails },
     });
 
     if (error) {
+      const msg = await tryReadFunctionError(error);
       console.error('Error confirming multi-booking:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: msg };
     }
 
     return data;
   } catch (error) {
     console.error('Error confirming multi-booking:', error);
-    return { success: false, error: 'Failed to confirm bookings' };
+    return { success: false, error: await tryReadFunctionError(error) };
   }
 }
 

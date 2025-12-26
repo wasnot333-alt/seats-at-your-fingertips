@@ -45,6 +45,7 @@ export interface LevelSeatSelection {
 export interface BookingState {
   code: string;
   allowedLevels: string[];
+  maxSeats: number; // How many levels can still be booked with this code
   selectedLevels: string[]; // Levels user wants to book
   selectedLevel: string | null; // Current level being edited
   selectedSeat: Seat | null;

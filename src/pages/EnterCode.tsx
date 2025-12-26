@@ -33,9 +33,9 @@ export default function EnterCode() {
       } else if (!result.isValid) {
         setError('Invalid invitation code. Please verify and try again.');
       } else {
-        // Save code and allowed levels
-        saveCode(result.code, result.allowedLevels);
-        
+        // Save code and allowed levels (and remaining usage as maxSeats)
+        saveCode(result.code, result.allowedLevels, result.maxSeats);
+
         // If multiple levels, go to level selection; otherwise go to seat selection
         if (result.allowedLevels && result.allowedLevels.length > 1) {
           navigate('/select-level');
