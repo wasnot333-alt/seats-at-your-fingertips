@@ -2,66 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 220 20% 8%;
-    --foreground: 40 20% 95%;
+    --background: 20 15% 6%;
+    --foreground: 40 30% 95%;
 
-    --card: 220 18% 12%;
-    --card-foreground: 40 20% 95%;
+    --card: 20 20% 10%;
+    --card-foreground: 40 30% 95%;
 
-    --popover: 220 18% 12%;
-    --popover-foreground: 40 20% 95%;
+    --popover: 20 20% 10%;
+    --popover-foreground: 40 30% 95%;
 
-    --primary: 42 85% 55%;
-    --primary-foreground: 220 20% 8%;
+    --primary: 32 90% 55%;
+    --primary-foreground: 20 15% 6%;
 
-    --secondary: 220 15% 18%;
-    --secondary-foreground: 40 20% 95%;
+    --secondary: 20 15% 14%;
+    --secondary-foreground: 40 30% 95%;
 
-    --muted: 220 15% 20%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 20 15% 18%;
+    --muted-foreground: 25 10% 55%;
 
-    --accent: 215 80% 55%;
-    --accent-foreground: 40 20% 98%;
+    --accent: 280 60% 50%;
+    --accent-foreground: 40 30% 98%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 40 20% 98%;
+    --destructive-foreground: 40 30% 98%;
 
-    --border: 220 15% 22%;
-    --input: 220 15% 18%;
-    --ring: 42 85% 55%;
+    --border: 20 15% 20%;
+    --input: 20 15% 14%;
+    --ring: 32 90% 55%;
 
     --radius: 0.75rem;
+
+    /* Spiritual colors */
+    --saffron: 32 90% 55%;
+    --maroon: 350 60% 35%;
+    --violet: 280 60% 50%;
+    --gold-aura: 42 85% 60%;
 
     /* Custom colors for seats */
     --seat-available: 152 70% 45%;
     --seat-available-hover: 152 70% 50%;
-    --seat-booked: 220 10% 35%;
-    --seat-selected: 215 80% 55%;
-    --seat-selected-glow: 215 80% 55%;
+    --seat-booked: 20 10% 30%;
+    --seat-selected: 280 60% 50%;
+    --seat-selected-glow: 280 60% 50%;
 
     /* Gradients */
-    --gradient-gold: linear-gradient(135deg, hsl(42, 85%, 55%) 0%, hsl(35, 90%, 45%) 100%);
-    --gradient-dark: linear-gradient(180deg, hsl(220, 20%, 10%) 0%, hsl(220, 20%, 6%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(220, 18%, 14%) 0%, hsl(220, 18%, 10%) 100%);
-    --gradient-stage: linear-gradient(180deg, hsl(42, 85%, 55%) 0%, hsl(35, 80%, 40%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(32, 90%, 55%) 0%, hsl(42, 85%, 45%) 100%);
+    --gradient-saffron: linear-gradient(135deg, hsl(32, 90%, 55%) 0%, hsl(350, 60%, 35%) 100%);
+    --gradient-dark: linear-gradient(180deg, hsl(20, 15%, 8%) 0%, hsl(20, 15%, 4%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(20, 20%, 12%) 0%, hsl(20, 20%, 8%) 100%);
+    --gradient-stage: linear-gradient(180deg, hsl(32, 90%, 55%) 0%, hsl(350, 60%, 40%) 100%);
+    --gradient-spiritual: linear-gradient(135deg, hsl(32, 90%, 55%) 0%, hsl(280, 60%, 50%) 50%, hsl(350, 60%, 35%) 100%);
 
     /* Shadows */
-    --shadow-gold: 0 0 30px hsl(42 85% 55% / 0.2);
-    --shadow-card: 0 10px 40px hsl(0 0% 0% / 0.3);
+    --shadow-gold: 0 0 30px hsl(32 90% 55% / 0.25);
+    --shadow-card: 0 10px 40px hsl(0 0% 0% / 0.4);
     --shadow-seat: 0 4px 12px hsl(0 0% 0% / 0.4);
+    --shadow-aura: 0 0 60px hsl(32 90% 55% / 0.15);
 
-    --sidebar-background: 220 18% 12%;
-    --sidebar-foreground: 40 20% 95%;
-    --sidebar-primary: 42 85% 55%;
-    --sidebar-primary-foreground: 220 20% 8%;
-    --sidebar-accent: 220 15% 18%;
-    --sidebar-accent-foreground: 40 20% 95%;
-    --sidebar-border: 220 15% 22%;
-    --sidebar-ring: 42 85% 55%;
+    --sidebar-background: 20 20% 10%;
+    --sidebar-foreground: 40 30% 95%;
+    --sidebar-primary: 32 90% 55%;
+    --sidebar-primary-foreground: 20 15% 6%;
+    --sidebar-accent: 20 15% 14%;
+    --sidebar-accent-foreground: 40 30% 95%;
+    --sidebar-border: 20 15% 20%;
+    --sidebar-ring: 32 90% 55%;
   }
 }
 
@@ -126,7 +135,7 @@
 
   .gold-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 40px hsl(42 85% 55% / 0.4);
+    box-shadow: 0 0 40px hsl(32 90% 55% / 0.4);
   }
 
   .gold-button:disabled {
@@ -152,11 +161,20 @@
     @apply py-6 px-12 rounded-xl text-center font-display text-2xl font-bold tracking-widest;
     background: var(--gradient-stage);
     color: hsl(var(--background));
-    box-shadow: 0 10px 40px hsl(42 85% 55% / 0.3);
+    box-shadow: 0 10px 40px hsl(32 90% 55% / 0.3);
   }
 
   .pathway {
     @apply w-16 flex items-center justify-center text-muted-foreground text-xs font-medium;
+  }
+
+  .spiritual-glow {
+    box-shadow: var(--shadow-aura);
+  }
+
+  .om-symbol {
+    @apply text-primary;
+    text-shadow: 0 0 20px hsl(32 90% 55% / 0.5);
   }
 }
 
@@ -176,6 +194,10 @@
   .animate-scale-in {
     animation: scaleIn 0.4s ease-out forwards;
   }
+
+  .animate-pulse-soft {
+    animation: pulseSoft 3s ease-in-out infinite;
+  }
 }
 
 @keyframes float {
@@ -184,8 +206,8 @@
 }
 
 @keyframes glow {
-  from { box-shadow: 0 0 20px hsl(42 85% 55% / 0.3); }
-  to { box-shadow: 0 0 40px hsl(42 85% 55% / 0.5); }
+  from { box-shadow: 0 0 20px hsl(32 90% 55% / 0.3); }
+  to { box-shadow: 0 0 40px hsl(32 90% 55% / 0.5); }
 }
 
 @keyframes fadeUp {
@@ -196,4 +218,9 @@
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }

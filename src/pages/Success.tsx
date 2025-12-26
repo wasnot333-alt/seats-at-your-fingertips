@@ -3,10 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { StepIndicator } from '@/components/ui/step-indicator';
 import { useBooking } from '@/contexts/BookingContext';
-import { CheckCircle2, Armchair, Ticket, User, Home, Sparkles } from 'lucide-react';
+import { CheckCircle2, Flower2, Sparkles, User, Home } from 'lucide-react';
 
 const steps = [
-  { number: 1, title: 'Validate Code' },
+  { number: 1, title: 'Enter Code' },
   { number: 2, title: 'Select Seat' },
   { number: 3, title: 'Your Details' },
   { number: 4, title: 'Confirmation' },
@@ -24,7 +24,7 @@ export default function Success() {
 
   if (!confirmedBooking) return null;
 
-  const handleNewBooking = () => {
+  const handleNewReservation = () => {
     resetBooking();
     navigate('/');
   };
@@ -46,15 +46,15 @@ export default function Success() {
 
           {/* Title */}
           <div className="mb-10 animate-fade-up" style={{ animationDelay: '200ms' }}>
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-3">
-              Booking Confirmed!
+            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-3">
+              🙏 Seat Reserved Successfully!
             </h1>
             <p className="text-muted-foreground text-lg">
-              Your seat has been successfully reserved
+              Your meditation seat has been confirmed for the sacred session
             </p>
           </div>
 
-          {/* Booking Details Card */}
+          {/* Reservation Details Card */}
           <div 
             className="glass-card text-left mb-8 animate-fade-up" 
             style={{ animationDelay: '300ms' }}
@@ -63,10 +63,10 @@ export default function Success() {
               {/* Seat */}
               <div className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
                 <div className="p-3 rounded-xl bg-primary/10">
-                  <Armchair className="w-6 h-6 text-primary" />
+                  <Flower2 className="w-6 h-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Seat Number</p>
+                  <p className="text-sm text-muted-foreground">Meditation Seat Number</p>
                   <p className="text-2xl font-display font-bold text-foreground">
                     {confirmedBooking.seatNumber}
                   </p>
@@ -79,7 +79,7 @@ export default function Success() {
                   <User className="w-6 h-6 text-foreground" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Booked By</p>
+                  <p className="text-sm text-muted-foreground">Sadhak Name</p>
                   <p className="text-lg font-semibold text-foreground">
                     {confirmedBooking.customerName}
                   </p>
@@ -89,10 +89,10 @@ export default function Success() {
               {/* Code */}
               <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
                 <div className="p-3 rounded-xl bg-secondary">
-                  <Ticket className="w-6 h-6 text-foreground" />
+                  <Sparkles className="w-6 h-6 text-foreground" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Booking Code</p>
+                  <p className="text-sm text-muted-foreground">Invitation Code</p>
                   <p className="text-lg font-mono font-semibold text-foreground">
                     {confirmedBooking.codeUsed}
                   </p>
@@ -100,10 +100,10 @@ export default function Success() {
               </div>
             </div>
 
-            {/* Booking Time */}
+            {/* Reservation Time */}
             <div className="mt-6 pt-6 border-t border-border text-center">
               <p className="text-sm text-muted-foreground">
-                Booked on {confirmedBooking.bookingTime}
+                Reserved on {confirmedBooking.bookingTime}
               </p>
             </div>
           </div>
@@ -116,6 +116,22 @@ export default function Success() {
             <p className="text-seat-available font-medium">
               ✓ A confirmation email has been sent to {confirmedBooking.email}
             </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Please arrive at the ashram on time for the meditation session.
+            </p>
+          </div>
+
+          {/* Divine Message */}
+          <div 
+            className="p-6 rounded-xl bg-primary/5 border border-primary/20 mb-8 animate-fade-up text-center"
+            style={{ animationDelay: '450ms' }}
+          >
+            <p className="text-primary font-display text-lg">
+              🙏 Om Namah Shivay 🙏
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              May your spiritual journey be blessed with divine wisdom and inner peace.
+            </p>
           </div>
 
           {/* Action Buttons */}
@@ -124,11 +140,11 @@ export default function Success() {
             style={{ animationDelay: '500ms' }}
           >
             <button
-              onClick={handleNewBooking}
+              onClick={handleNewReservation}
               className="gold-button flex items-center justify-center gap-2"
             >
               <Home className="w-5 h-5" />
-              Book Another Seat
+              Return to Home
             </button>
           </div>
         </div>

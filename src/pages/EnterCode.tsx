@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { validateCode } from '@/services/api';
 import { useBooking } from '@/contexts/BookingContext';
-import { Ticket, Loader2, AlertCircle, Clock } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Clock } from 'lucide-react';
 
 export default function EnterCode() {
   const [code, setCode] = useState('');
@@ -16,7 +16,7 @@ export default function EnterCode() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) {
-      setError('Please enter a booking code');
+      setError('Please enter your invitation access code');
       return;
     }
 
@@ -29,9 +29,9 @@ export default function EnterCode() {
 
       if (result.isExpired) {
         setIsExpired(true);
-        setError('This code has expired. Please contact support for a new code.');
+        setError('This invitation code has expired. Please contact the ashram for a new code.');
       } else if (!result.isValid) {
-        setError('Invalid booking code. Please check and try again.');
+        setError('Invalid invitation code. Please verify and try again.');
       } else {
         saveCode(result.code);
         navigate('/select-seat');
@@ -49,18 +49,18 @@ export default function EnterCode() {
         <div className="w-full max-w-md animate-fade-up">
           {/* Icon */}
           <div className="flex justify-center mb-8">
-            <div className="p-6 rounded-2xl bg-primary/10 animate-float">
-              <Ticket className="w-16 h-16 text-primary" />
+            <div className="p-6 rounded-full bg-primary/10 animate-float spiritual-glow">
+              <Sparkles className="w-16 h-16 text-primary" />
             </div>
           </div>
 
           {/* Title */}
           <div className="text-center mb-10">
-            <h1 className="font-display text-4xl font-bold text-foreground mb-3">
-              Enter Your Booking Code
+            <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3">
+              Enter Your Invitation Code
             </h1>
             <p className="text-muted-foreground">
-              Please enter the unique code provided to you
+              Only invited Sadhaks can reserve their meditation seat. Please enter your Invitation Access Code to proceed.
             </p>
           </div>
 
@@ -69,7 +69,7 @@ export default function EnterCode() {
             <div className="space-y-6">
               <div>
                 <label htmlFor="code" className="block text-sm font-medium text-foreground mb-2">
-                  Booking Code
+                  Invitation Access Code
                 </label>
                 <input
                   id="code"
@@ -80,7 +80,7 @@ export default function EnterCode() {
                     setError(null);
                     setIsExpired(false);
                   }}
-                  placeholder="e.g., GOLD2024"
+                  placeholder="e.g., SHAKTI2024"
                   className="input-premium text-center text-xl tracking-widest uppercase"
                   disabled={loading}
                   autoComplete="off"
@@ -117,7 +117,7 @@ export default function EnterCode() {
                     Validating...
                   </>
                 ) : (
-                  'Validate Code'
+                  'Proceed to Seat Selection'
                 )}
               </button>
             </div>
@@ -125,9 +125,9 @@ export default function EnterCode() {
 
           {/* Help Text */}
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Don't have a code?{' '}
+            Don't have an invitation code?{' '}
             <a href="#" className="text-primary hover:underline">
-              Contact support
+              Contact the Ashram
             </a>
           </p>
 

@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Playfair Display", "serif"],
-        sans: ["DM Sans", "system-ui", "sans-serif"],
+        display: ["Cinzel", "serif"],
+        sans: ["Poppins", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
