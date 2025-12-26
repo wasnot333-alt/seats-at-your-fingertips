@@ -10,26 +10,39 @@ export function SeatLayout() {
   const [loading, setLoading] = useState(true);
   const { bookingState, selectSeat } = useBooking();
 
-  useEffect(() => {
-    loadSeats();
-  }, [bookingState.selectedLevel]);
+  const currentLevel = bookingState.selectedLevel || 'Level 1';
+  // Get the selected seat for the CURRENT level from levelSeats
+  const selectedSeatForLevel = bookingState.levelSeats[currentLevel];
 
-  const loadSeats = async () => {
-    try {
-      setLoading(true);
-      // Fetch seats with availability for the selected session level
-      const sessionLevel = bookingState.selectedLevel || 'Level 1';
-      const fetchedSeats = await getSeatsForLevel(sessionLevel);
-      setSeats(fetchedSeats);
-    } catch (error) {
-      console.error('Failed to load seats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadSeats = async () => {
+      try {
+        setLoading(true);
+        const fetchedSeats = await getSeatsForLevel(currentLevel);
+        if (isMounted) {
+          setSeats(fetchedSeats);
+        }
+      } catch (error) {
+        console.error('Failed to load seats:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadSeats();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [currentLevel]);
 
   const handleSeatSelect = (seat: SeatType) => {
-    if (bookingState.selectedSeat?.id === seat.id) {
+    // Toggle: if same seat clicked, deselect; otherwise select
+    if (selectedSeatForLevel?.id === seat.id) {
       selectSeat(null);
     } else {
       selectSeat(seat);
@@ -42,7 +55,6 @@ export function SeatLayout() {
   const getSeatsForRow = (row: string, side: 'left' | 'right') => {
     return seats.filter(seat => {
       if (seat.row !== row) return false;
-      // Left side: seats 1-5, Right side: seats 6-10
       if (side === 'left') return seat.number <= 5;
       return seat.number > 5;
     }).sort((a, b) => a.number - b.number);
@@ -87,7 +99,7 @@ export function SeatLayout() {
                 <Seat
                   key={seat.id}
                   seat={seat}
-                  isSelected={bookingState.selectedSeat?.id === seat.id}
+                  isSelected={selectedSeatForLevel?.id === seat.id}
                   onSelect={handleSeatSelect}
                 />
               ))}
@@ -104,7 +116,7 @@ export function SeatLayout() {
                 <Seat
                   key={seat.id}
                   seat={seat}
-                  isSelected={bookingState.selectedSeat?.id === seat.id}
+                  isSelected={selectedSeatForLevel?.id === seat.id}
                   onSelect={handleSeatSelect}
                 />
               ))}
