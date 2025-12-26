@@ -1,14 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { useBooking } from '@/contexts/BookingContext';
 import { StepIndicator } from '@/components/ui/step-indicator';
-import { Sparkles, Zap, Sun } from 'lucide-react';
+import { Sparkles, Zap, Sun, Check, ArrowRight } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const steps = [
   { number: 1, title: 'Enter Code' },
-  { number: 2, title: 'Select Level' },
-  { number: 3, title: 'Select Seat' },
+  { number: 2, title: 'Select Levels' },
+  { number: 3, title: 'Select Seats' },
   { number: 4, title: 'Your Details' },
   { number: 5, title: 'Confirmation' },
 ];
@@ -36,7 +37,8 @@ const levelDetails: Record<string, { title: string; description: string; icon: R
 
 export default function SelectLevel() {
   const navigate = useNavigate();
-  const { bookingState, setSelectedLevel } = useBooking();
+  const { bookingState, setSelectedLevels, setSelectedLevel } = useBooking();
+  const [localSelectedLevels, setLocalSelectedLevels] = useState<string[]>([]);
 
   // Redirect if no code is set
   useEffect(() => {
@@ -45,22 +47,36 @@ export default function SelectLevel() {
       return;
     }
     
-    // If only one level is allowed, auto-proceed to seat selection
-    if (bookingState.allowedLevels.length === 1) {
-      setSelectedLevel(bookingState.allowedLevels[0]);
-      navigate('/select-seat');
+    // Initialize with all allowed levels selected
+    if (bookingState.allowedLevels.length > 0 && localSelectedLevels.length === 0) {
+      setLocalSelectedLevels(bookingState.allowedLevels);
     }
-  }, [bookingState.code, bookingState.allowedLevels, navigate, setSelectedLevel]);
+  }, [bookingState.code, bookingState.allowedLevels, navigate, localSelectedLevels.length]);
 
-  const handleSelectLevel = (level: string) => {
-    setSelectedLevel(level);
+  const handleToggleLevel = (level: string) => {
+    setLocalSelectedLevels(prev => {
+      if (prev.includes(level)) {
+        return prev.filter(l => l !== level);
+      }
+      return [...prev, level];
+    });
+  };
+
+  const handleContinue = () => {
+    if (localSelectedLevels.length === 0) return;
+    
+    // Sort levels to ensure consistent order
+    const sortedLevels = [...localSelectedLevels].sort();
+    setSelectedLevels(sortedLevels);
+    setSelectedLevel(sortedLevels[0]);
     navigate('/select-seat');
   };
 
-  // Don't render if we're going to redirect
-  if (!bookingState.code || bookingState.allowedLevels.length <= 1) {
+  if (!bookingState.code) {
     return null;
   }
+
+  const hasMultipleLevels = bookingState.allowedLevels.length > 1;
 
   return (
     <PageContainer>
@@ -73,11 +89,13 @@ export default function SelectLevel() {
         {/* Title Section */}
         <div className="text-center mb-12 animate-fade-up">
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Select Meditation Level
+            {hasMultipleLevels ? 'Select Meditation Levels' : 'Your Meditation Level'}
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Your invitation code allows access to multiple meditation levels. 
-            Please select the level you wish to attend.
+            {hasMultipleLevels 
+              ? 'Your invitation code allows access to multiple meditation levels. Select all levels you wish to book seats for.'
+              : 'Your invitation grants access to the following meditation level.'
+            }
           </p>
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary">
             <span className="font-mono font-bold">{bookingState.code}</span>
@@ -93,16 +111,32 @@ export default function SelectLevel() {
               icon: <Sparkles className="w-8 h-8" />,
               color: 'from-primary to-accent',
             };
+            const isSelected = localSelectedLevels.includes(level);
 
             return (
               <button
                 key={level}
-                onClick={() => handleSelectLevel(level)}
-                className="group relative p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300 text-left animate-fade-up hover:shadow-xl hover:shadow-primary/10"
+                onClick={() => handleToggleLevel(level)}
+                className={`group relative p-6 rounded-2xl bg-card border-2 transition-all duration-300 text-left animate-fade-up hover:shadow-xl ${
+                  isSelected 
+                    ? 'border-primary shadow-lg shadow-primary/20' 
+                    : 'border-border hover:border-primary/50'
+                }`}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
+                {/* Selection Indicator */}
+                <div className={`absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                  isSelected 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-secondary'
+                }`}>
+                  {isSelected && <Check className="w-4 h-4" />}
+                </div>
+
                 {/* Gradient Background */}
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${details.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${details.color} transition-opacity duration-300 ${
+                  isSelected ? 'opacity-10' : 'opacity-0 group-hover:opacity-5'
+                }`} />
                 
                 {/* Icon */}
                 <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${details.color} text-white mb-4`}>
@@ -117,19 +151,47 @@ export default function SelectLevel() {
                   {details.description}
                 </p>
 
-                {/* Arrow indicator */}
-                <div className="absolute bottom-6 right-6 text-muted-foreground group-hover:text-primary transition-colors">
-                  <svg className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </div>
+                {/* Selected badge */}
+                {isSelected && (
+                  <div className="absolute bottom-4 right-4 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                    Selected
+                  </div>
+                )}
               </button>
             );
           })}
         </div>
 
+        {/* Summary & Continue */}
+        <div className="max-w-4xl mx-auto mt-10">
+          <div className="glass-card flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Selected Levels</p>
+              <div className="flex flex-wrap gap-2">
+                {localSelectedLevels.length === 0 ? (
+                  <span className="text-muted-foreground">No levels selected</span>
+                ) : (
+                  localSelectedLevels.sort().map(level => (
+                    <span key={level} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                      {level}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+            <button
+              onClick={handleContinue}
+              disabled={localSelectedLevels.length === 0}
+              className="gold-button flex items-center gap-2"
+            >
+              Continue to Seat Selection
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
         {/* Back Button */}
-        <div className="text-center mt-12">
+        <div className="text-center mt-8">
           <button
             onClick={() => navigate('/enter-code')}
             className="text-muted-foreground hover:text-foreground transition-colors"

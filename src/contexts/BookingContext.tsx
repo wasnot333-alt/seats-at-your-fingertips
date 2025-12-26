@@ -4,19 +4,26 @@ import { BookingState, Seat, UserDetails, Booking } from '@/types/booking';
 interface BookingContextType {
   bookingState: BookingState;
   setCode: (code: string, allowedLevels?: string[]) => void;
+  setSelectedLevels: (levels: string[]) => void;
   setSelectedLevel: (level: string) => void;
   selectSeat: (seat: Seat | null) => void;
+  setSeatForLevel: (level: string, seat: Seat | null) => void;
   setUserDetails: (details: UserDetails) => void;
-  confirmedBooking: Booking | null;
+  confirmedBookings: Booking[];
+  setConfirmedBookings: (bookings: Booking[]) => void;
+  confirmedBooking: Booking | null; // Legacy support
   setConfirmedBooking: (booking: Booking | null) => void;
   resetBooking: () => void;
+  getLevelSeats: () => { level: string; seat: Seat }[];
 }
 
 const initialState: BookingState = {
   code: '',
   allowedLevels: [],
+  selectedLevels: [],
   selectedLevel: null,
   selectedSeat: null,
+  levelSeats: {},
   userDetails: null,
 };
 
@@ -24,24 +31,72 @@ const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 export function BookingProvider({ children }: { children: ReactNode }) {
   const [bookingState, setBookingState] = useState<BookingState>(initialState);
+  const [confirmedBookings, setConfirmedBookings] = useState<Booking[]>([]);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
   const setCode = (code: string, allowedLevels?: string[]) => {
+    const levels = allowedLevels || ['Level 1'];
     setBookingState(prev => ({ 
       ...prev, 
       code,
-      allowedLevels: allowedLevels || ['Level 1'],
-      // Auto-select level if only one is allowed
-      selectedLevel: allowedLevels && allowedLevels.length === 1 ? allowedLevels[0] : null
+      allowedLevels: levels,
+      // Auto-select all levels if multiple allowed, or just the one
+      selectedLevels: levels,
+      // Auto-select first level for editing
+      selectedLevel: levels[0] || null,
+      levelSeats: {},
     }));
   };
 
+  const setSelectedLevels = (levels: string[]) => {
+    setBookingState(prev => {
+      // Clean up seats for deselected levels
+      const newLevelSeats = { ...prev.levelSeats };
+      Object.keys(newLevelSeats).forEach(level => {
+        if (!levels.includes(level)) {
+          delete newLevelSeats[level];
+        }
+      });
+      return { 
+        ...prev, 
+        selectedLevels: levels,
+        levelSeats: newLevelSeats,
+        selectedLevel: levels[0] || null,
+      };
+    });
+  };
+
   const setSelectedLevel = (level: string) => {
-    setBookingState(prev => ({ ...prev, selectedLevel: level }));
+    setBookingState(prev => ({ 
+      ...prev, 
+      selectedLevel: level,
+      selectedSeat: prev.levelSeats[level] || null,
+    }));
   };
 
   const selectSeat = (seat: Seat | null) => {
-    setBookingState(prev => ({ ...prev, selectedSeat: seat }));
+    setBookingState(prev => {
+      if (!prev.selectedLevel) return prev;
+      return { 
+        ...prev, 
+        selectedSeat: seat,
+        levelSeats: {
+          ...prev.levelSeats,
+          [prev.selectedLevel]: seat,
+        }
+      };
+    });
+  };
+
+  const setSeatForLevel = (level: string, seat: Seat | null) => {
+    setBookingState(prev => ({
+      ...prev,
+      levelSeats: {
+        ...prev.levelSeats,
+        [level]: seat,
+      },
+      selectedSeat: prev.selectedLevel === level ? seat : prev.selectedSeat,
+    }));
   };
 
   const setUserDetails = (details: UserDetails) => {
@@ -50,7 +105,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
   const resetBooking = () => {
     setBookingState(initialState);
+    setConfirmedBookings([]);
     setConfirmedBooking(null);
+  };
+
+  const getLevelSeats = () => {
+    return Object.entries(bookingState.levelSeats)
+      .filter(([_, seat]) => seat !== null)
+      .map(([level, seat]) => ({ level, seat: seat! }));
   };
 
   return (
@@ -58,12 +120,17 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       value={{
         bookingState,
         setCode,
+        setSelectedLevels,
         setSelectedLevel,
         selectSeat,
+        setSeatForLevel,
         setUserDetails,
+        confirmedBookings,
+        setConfirmedBookings,
         confirmedBooking,
         setConfirmedBooking,
         resetBooking,
+        getLevelSeats,
       }}
     >
       {children}
