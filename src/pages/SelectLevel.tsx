@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { useBooking } from '@/contexts/BookingContext';
 import { StepIndicator } from '@/components/ui/step-indicator';
+import { toast } from '@/components/ui/use-toast';
 import { Sparkles, Zap, Sun, Check, ArrowRight } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
 
 const steps = [
   { number: 1, title: 'Enter Code' },
@@ -40,31 +40,49 @@ export default function SelectLevel() {
   const { bookingState, setSelectedLevels, setSelectedLevel } = useBooking();
   const [localSelectedLevels, setLocalSelectedLevels] = useState<string[]>([]);
 
+  const maxSelectable = useMemo(() => {
+    // maxSeats comes from backend as remaining usage; clamp to allowedLevels.
+    const allowedCount = bookingState.allowedLevels.length || 1;
+    const raw = bookingState.maxSeats ?? allowedCount;
+    const clamped = Math.max(1, Math.min(raw, allowedCount));
+    return clamped;
+  }, [bookingState.allowedLevels.length, bookingState.maxSeats]);
+
   // Redirect if no code is set
   useEffect(() => {
     if (!bookingState.code) {
       navigate('/enter-code');
       return;
     }
-    
-    // Initialize with all allowed levels selected
+
+    // Initialize selection (up to maxSelectable)
     if (bookingState.allowedLevels.length > 0 && localSelectedLevels.length === 0) {
-      setLocalSelectedLevels(bookingState.allowedLevels);
+      setLocalSelectedLevels(bookingState.allowedLevels.slice(0, maxSelectable));
     }
-  }, [bookingState.code, bookingState.allowedLevels, navigate, localSelectedLevels.length]);
+  }, [bookingState.code, bookingState.allowedLevels, navigate, localSelectedLevels.length, maxSelectable]);
 
   const handleToggleLevel = (level: string) => {
-    setLocalSelectedLevels(prev => {
+    setLocalSelectedLevels((prev) => {
       if (prev.includes(level)) {
-        return prev.filter(l => l !== level);
+        return prev.filter((l) => l !== level);
       }
+
+      if (prev.length >= maxSelectable) {
+        toast({
+          title: 'Limit reached',
+          description: `This code allows booking up to ${maxSelectable} level(s).`,
+          variant: 'destructive',
+        });
+        return prev;
+      }
+
       return [...prev, level];
     });
   };
 
   const handleContinue = () => {
     if (localSelectedLevels.length === 0) return;
-    
+
     // Sort levels to ensure consistent order
     const sortedLevels = [...localSelectedLevels].sort();
     setSelectedLevels(sortedLevels);
@@ -167,11 +185,12 @@ export default function SelectLevel() {
           <div className="glass-card flex flex-col sm:flex-row items-center justify-between gap-6">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Selected Levels</p>
+              <p className="text-xs text-muted-foreground mb-3">You can select up to {maxSelectable} level(s) with this code.</p>
               <div className="flex flex-wrap gap-2">
                 {localSelectedLevels.length === 0 ? (
                   <span className="text-muted-foreground">No levels selected</span>
                 ) : (
-                  localSelectedLevels.sort().map(level => (
+                  [...localSelectedLevels].sort().map((level) => (
                     <span key={level} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
                       {level}
                     </span>
