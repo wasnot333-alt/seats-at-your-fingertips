@@ -127,7 +127,7 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
             <span className="detail-label text-xs text-muted-foreground flex items-center gap-2">
               <User className="w-4 h-4" /> Name
             </span>
-            <span className="detail-value text-sm font-medium text-foreground">
+            <span className="detail-value text-sm font-bold text-amber-900">
               {displayValue(booking.customerName)}
             </span>
           </div>
@@ -135,7 +135,7 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
             <span className="detail-label text-xs text-muted-foreground flex items-center gap-2">
               <Sparkles className="w-4 h-4" /> Invitation Code
             </span>
-            <span className="detail-value text-sm font-mono font-medium text-foreground">
+            <span className="detail-value text-sm font-mono font-bold text-amber-900">
               {displayValue(booking.codeUsed)}
             </span>
           </div>
@@ -143,7 +143,7 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
             <span className="detail-label text-xs text-muted-foreground flex items-center gap-2">
               <Calendar className="w-4 h-4" /> Booked On
             </span>
-            <span className="detail-value text-sm font-medium text-foreground">
+            <span className="detail-value text-sm font-bold text-amber-900">
               {formatBookingTime(booking.bookingTime)}
             </span>
           </div>
@@ -151,7 +151,7 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
             <span className="detail-label text-xs text-muted-foreground flex items-center gap-2">
               <Armchair className="w-4 h-4" /> Booking ID
             </span>
-            <span className="detail-value text-xs font-mono text-muted-foreground">
+            <span className="detail-value text-xs font-mono font-semibold text-amber-800">
               {displayValue(booking.id)}
             </span>
           </div>
