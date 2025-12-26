@@ -1,13 +1,32 @@
 import { Link } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
-import { Armchair, Ticket, Shield, ArrowRight, Star } from 'lucide-react';
+import { Armchair, Ticket, ArrowRight, Star, Shield } from 'lucide-react';
 
 export default function Index() {
   return (
     <PageContainer showHeader={false}>
       <div className="min-h-screen flex flex-col">
+        {/* Top bar with admin link */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+          <div className="container mx-auto px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Armchair className="w-5 h-5 text-primary" />
+              </div>
+              <span className="font-display font-bold text-foreground">SeatReserve</span>
+            </div>
+            <Link 
+              to="/admin-login" 
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+            >
+              <Shield className="w-4 h-4" />
+              Admin Login
+            </Link>
+          </div>
+        </div>
+
         {/* Hero Section */}
-        <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="flex-1 flex items-center justify-center px-6 py-12 pt-24">
           <div className="text-center max-w-3xl mx-auto">
             {/* Logo */}
             <div className="inline-flex items-center gap-3 mb-8 animate-fade-up">
@@ -34,23 +53,14 @@ export default function Index() {
               Select your perfect seat in just a few clicks.
             </p>
 
-            {/* CTA Buttons */}
+            {/* CTA Button */}
             <div 
-              className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-up"
+              className="flex justify-center mb-16 animate-fade-up"
               style={{ animationDelay: '300ms' }}
             >
               <Link to="/enter-code" className="gold-button inline-flex items-center gap-2">
                 Book Your Seat
                 <ArrowRight className="w-5 h-5" />
-              </Link>
-              <Link 
-                to="/admin" 
-                className="px-8 py-4 rounded-xl font-semibold text-lg bg-secondary 
-                         text-secondary-foreground hover:bg-secondary/80 transition-all
-                         inline-flex items-center gap-2"
-              >
-                <Shield className="w-5 h-5" />
-                Admin Panel
               </Link>
             </div>
 
@@ -98,9 +108,17 @@ export default function Index() {
 
         {/* Footer */}
         <footer className="border-t border-border py-6">
-          <p className="text-center text-sm text-muted-foreground">
-            © 2024 SeatReserve. Premium Event Booking Platform.
-          </p>
+          <div className="container mx-auto px-6 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              © 2024 SeatReserve. Premium Event Booking Platform.
+            </p>
+            <Link 
+              to="/admin-login" 
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Admin
+            </Link>
+          </div>
         </footer>
       </div>
     </PageContainer>

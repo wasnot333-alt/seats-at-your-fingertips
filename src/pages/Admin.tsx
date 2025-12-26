@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { getAdminBookings, exportToExcel, exportToPdf } from '@/services/api';
 import { Booking } from '@/types/booking';
 import {
@@ -15,9 +16,12 @@ import {
   Users,
   Ticket,
   Clock,
+  LogOut,
 } from 'lucide-react';
 
 export default function Admin() {
+  const navigate = useNavigate();
+  const { signOut, user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,6 +43,11 @@ export default function Admin() {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   const filteredBookings = useMemo(() => {
     return bookings.filter(booking => {
       const matchesSearch =
@@ -56,7 +65,7 @@ export default function Admin() {
 
   const stats = useMemo(() => {
     const totalSeats = 30; // 3 rows × 10 seats
-    const bookedSeats = bookings.filter(b => b.status === 'booked').length;
+    const bookedSeats = bookings.length;
     return {
       total: totalSeats,
       booked: bookedSeats,
@@ -100,6 +109,18 @@ export default function Admin() {
                   <p className="text-xs text-muted-foreground">Booking Management</p>
                 </div>
               </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground hidden sm:block">
+                {user?.email}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
             </div>
           </div>
         </div>
@@ -241,7 +262,7 @@ export default function Admin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredBookings.map((booking, index) => (
+                  {filteredBookings.map((booking) => (
                     <tr
                       key={booking.id}
                       className="border-b border-border/50 hover:bg-secondary/20 transition-colors"
