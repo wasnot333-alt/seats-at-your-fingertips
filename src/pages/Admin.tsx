@@ -64,7 +64,7 @@ export default function Admin() {
   }, [bookings, searchTerm, statusFilter]);
 
   const stats = useMemo(() => {
-    const totalSeats = 30;
+    const totalSeats = 180;
     const bookedSeats = bookings.length;
     return { total: totalSeats, booked: bookedSeats, available: totalSeats - bookedSeats };
   }, [bookings]);
