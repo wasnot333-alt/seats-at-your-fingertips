@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { StepIndicator } from '@/components/ui/step-indicator';
 import { useBooking } from '@/contexts/BookingContext';
-import { CheckCircle2, Flower2, Sparkles, User, Home } from 'lucide-react';
+import { CheckCircle2, Sparkles, Home } from 'lucide-react';
+import BookingTicket from '@/components/booking/BookingTicket';
+import { Booking } from '@/types/booking';
 
 const steps = [
   { number: 1, title: 'Enter Code' },
@@ -27,6 +29,19 @@ export default function Success() {
   const handleNewReservation = () => {
     resetBooking();
     navigate('/');
+  };
+
+  // Convert to Booking type for the ticket component
+  const booking: Booking = {
+    id: confirmedBooking.id || crypto.randomUUID(),
+    seatId: confirmedBooking.seatNumber,
+    seatNumber: confirmedBooking.seatNumber,
+    customerName: confirmedBooking.customerName,
+    mobileNumber: '',
+    email: confirmedBooking.email,
+    codeUsed: confirmedBooking.codeUsed,
+    bookingTime: confirmedBooking.bookingTime,
+    status: 'booked',
   };
 
   return (
@@ -54,58 +69,12 @@ export default function Success() {
             </p>
           </div>
 
-          {/* Reservation Details Card */}
+          {/* Booking Ticket with QR Code */}
           <div 
-            className="glass-card text-left mb-8 animate-fade-up" 
+            className="mb-8 animate-fade-up" 
             style={{ animationDelay: '300ms' }}
           >
-            <div className="grid gap-4">
-              {/* Seat */}
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <Flower2 className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Meditation Seat Number</p>
-                  <p className="text-2xl font-display font-bold text-foreground">
-                    {confirmedBooking.seatNumber}
-                  </p>
-                </div>
-              </div>
-
-              {/* Name */}
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
-                <div className="p-3 rounded-xl bg-secondary">
-                  <User className="w-6 h-6 text-foreground" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Sadhak Name</p>
-                  <p className="text-lg font-semibold text-foreground">
-                    {confirmedBooking.customerName}
-                  </p>
-                </div>
-              </div>
-
-              {/* Code */}
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
-                <div className="p-3 rounded-xl bg-secondary">
-                  <Sparkles className="w-6 h-6 text-foreground" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Invitation Code</p>
-                  <p className="text-lg font-mono font-semibold text-foreground">
-                    {confirmedBooking.codeUsed}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Reservation Time */}
-            <div className="mt-6 pt-6 border-t border-border text-center">
-              <p className="text-sm text-muted-foreground">
-                Reserved on {confirmedBooking.bookingTime}
-              </p>
-            </div>
+            <BookingTicket booking={booking} />
           </div>
 
           {/* Confirmation Message */}

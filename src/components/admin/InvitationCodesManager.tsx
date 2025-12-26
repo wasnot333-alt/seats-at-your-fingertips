@@ -17,7 +17,7 @@ import {
   XCircle,
   Clock,
   Key,
-  AlertCircle,
+  User,
 } from 'lucide-react';
 import {
   Dialog,
@@ -42,6 +42,7 @@ export default function InvitationCodesManager() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | InvitationCodeStatus>('all');
+  const [usageFilter, setUsageFilter] = useState<'all' | 'used' | 'unused'>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<InvitationCode | null>(null);
   const [saving, setSaving] = useState(false);
@@ -49,6 +50,7 @@ export default function InvitationCodesManager() {
 
   // Form state
   const [formCode, setFormCode] = useState('');
+  const [formParticipantName, setFormParticipantName] = useState('');
   const [formStatus, setFormStatus] = useState<InvitationCodeStatus>('active');
   const [formMaxUsage, setFormMaxUsage] = useState<string>('1');
   const [formExpiresAt, setFormExpiresAt] = useState<string>('');
@@ -71,14 +73,25 @@ export default function InvitationCodesManager() {
 
   const filteredCodes = useMemo(() => {
     return codes.filter((code) => {
-      const matchesSearch = code.code.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = 
+        code.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (code.participantName?.toLowerCase() || '').includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || code.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      
+      let matchesUsage = true;
+      if (usageFilter === 'used') {
+        matchesUsage = code.currentUsage > 0;
+      } else if (usageFilter === 'unused') {
+        matchesUsage = code.currentUsage === 0;
+      }
+      
+      return matchesSearch && matchesStatus && matchesUsage;
     });
-  }, [codes, searchTerm, statusFilter]);
+  }, [codes, searchTerm, statusFilter, usageFilter]);
 
   const resetForm = () => {
     setFormCode('');
+    setFormParticipantName('');
     setFormStatus('active');
     setFormMaxUsage('1');
     setFormExpiresAt('');
@@ -93,6 +106,7 @@ export default function InvitationCodesManager() {
   const openEditDialog = (code: InvitationCode) => {
     setEditingCode(code);
     setFormCode(code.code);
+    setFormParticipantName(code.participantName || '');
     setFormStatus(code.status);
     setFormMaxUsage(code.maxUsage?.toString() || '');
     setFormExpiresAt(code.expiresAt ? code.expiresAt.slice(0, 16) : '');
@@ -111,6 +125,7 @@ export default function InvitationCodesManager() {
     try {
       const codeData = {
         code: formCode,
+        participantName: formParticipantName.trim() || null,
         status: formStatus,
         maxUsage: formMaxUsage ? parseInt(formMaxUsage, 10) : null,
         expiresAt: formExpiresAt || null,
@@ -246,13 +261,13 @@ export default function InvitationCodesManager() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search codes..."
+              placeholder="Search codes or names..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input-premium pl-12"
             />
           </div>
-          <div className="relative sm:w-48">
+          <div className="relative sm:w-40">
             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <select
               value={statusFilter}
@@ -263,6 +278,17 @@ export default function InvitationCodesManager() {
               <option value="active">Active</option>
               <option value="disabled">Disabled</option>
               <option value="expired">Expired</option>
+            </select>
+          </div>
+          <div className="relative sm:w-40">
+            <select
+              value={usageFilter}
+              onChange={(e) => setUsageFilter(e.target.value as typeof usageFilter)}
+              className="input-premium appearance-none cursor-pointer"
+            >
+              <option value="all">All Usage</option>
+              <option value="used">Used</option>
+              <option value="unused">Unused</option>
             </select>
           </div>
         </div>
@@ -294,10 +320,10 @@ export default function InvitationCodesManager() {
               <thead>
                 <tr className="border-b border-border bg-secondary/30">
                   <th className="text-left px-6 py-4 font-semibold text-foreground">Code</th>
+                  <th className="text-left px-6 py-4 font-semibold text-foreground">Participant</th>
                   <th className="text-left px-6 py-4 font-semibold text-foreground">Status</th>
                   <th className="text-left px-6 py-4 font-semibold text-foreground hidden md:table-cell">Usage</th>
                   <th className="text-left px-6 py-4 font-semibold text-foreground hidden lg:table-cell">Expires</th>
-                  <th className="text-left px-6 py-4 font-semibold text-foreground hidden xl:table-cell">Created</th>
                   <th className="text-right px-6 py-4 font-semibold text-foreground">Actions</th>
                 </tr>
               </thead>
@@ -312,6 +338,16 @@ export default function InvitationCodesManager() {
                         {code.code}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      {code.participantName ? (
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-foreground">{code.participantName}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Not assigned</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">{getStatusBadge(code.status)}</td>
                     <td className="px-6 py-4 text-muted-foreground hidden md:table-cell">
                       <span className="font-medium text-foreground">{code.currentUsage}</span>
@@ -321,9 +357,6 @@ export default function InvitationCodesManager() {
                     </td>
                     <td className="px-6 py-4 text-muted-foreground text-sm hidden lg:table-cell">
                       {formatDate(code.expiresAt)}
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground text-sm hidden xl:table-cell">
-                      {formatDate(code.createdAt)}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
@@ -398,6 +431,19 @@ export default function InvitationCodesManager() {
               />
               <p className="text-xs text-muted-foreground">
                 Case-insensitive. Will be stored in uppercase.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="participantName">Participant Name</Label>
+              <Input
+                id="participantName"
+                value={formParticipantName}
+                onChange={(e) => setFormParticipantName(e.target.value)}
+                placeholder="e.g., John Doe"
+              />
+              <p className="text-xs text-muted-foreground">
+                If set, only this person can use the code (strict name match).
               </p>
             </div>
 

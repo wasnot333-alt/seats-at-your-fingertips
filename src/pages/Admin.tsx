@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAdminBookings, exportToExcel, exportToPdf } from '@/services/api';
+import { getAdminBookings, exportToExcel } from '@/services/api';
 import { Booking } from '@/types/booking';
 import InvitationCodesManager from '@/components/admin/InvitationCodesManager';
 import {
@@ -29,7 +29,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'booked' | 'available'>('all');
-  const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     loadBookings();
@@ -70,15 +70,12 @@ export default function Admin() {
   }, [bookings]);
 
   const handleExportExcel = async () => {
-    setExporting('excel');
-    await exportToExcel(filteredBookings);
-    setExporting(null);
-  };
-
-  const handleExportPdf = async () => {
-    setExporting('pdf');
-    await exportToPdf(filteredBookings);
-    setExporting(null);
+    setExporting(true);
+    try {
+      await exportToExcel(filteredBookings);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -157,13 +154,9 @@ export default function Admin() {
                   </div>
                 </div>
                 <div className="flex gap-3 w-full sm:w-auto">
-                  <button onClick={handleExportExcel} disabled={exporting !== null} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-green-600/10 border border-green-600/20 text-green-500 hover:bg-green-600/20 transition-all font-medium">
-                    {exporting === 'excel' ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5" />}
+                  <button onClick={handleExportExcel} disabled={exporting} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-green-600/10 border border-green-600/20 text-green-500 hover:bg-green-600/20 transition-all font-medium">
+                    {exporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5" />}
                     Export Excel
-                  </button>
-                  <button onClick={handleExportPdf} disabled={exporting !== null} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-red-600/10 border border-red-600/20 text-red-500 hover:bg-red-600/20 transition-all font-medium">
-                    {exporting === 'pdf' ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-                    Export PDF
                   </button>
                 </div>
               </div>
