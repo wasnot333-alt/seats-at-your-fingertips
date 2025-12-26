@@ -18,7 +18,9 @@ export default function SelectSeat() {
   const navigate = useNavigate();
   const { bookingState, setSelectedLevel, getLevelSeats } = useBooking();
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Redirect if no code or no levels selected
   useEffect(() => {
     if (!bookingState.code) {
       navigate('/');
@@ -28,32 +30,35 @@ export default function SelectSeat() {
       navigate('/select-level');
       return;
     }
-    // Set the first level as selected
-    if (bookingState.selectedLevels.length > 0) {
-      setSelectedLevel(bookingState.selectedLevels[0]);
-    }
-  }, [bookingState.code, bookingState.selectedLevels, navigate, setSelectedLevel]);
+  }, [bookingState.code, bookingState.selectedLevels.length, navigate]);
 
-  const currentLevel = bookingState.selectedLevels[currentLevelIndex];
+  // Initialize selected level only once
+  useEffect(() => {
+    if (!isInitialized && bookingState.selectedLevels.length > 0) {
+      setSelectedLevel(bookingState.selectedLevels[0]);
+      setIsInitialized(true);
+    }
+  }, [bookingState.selectedLevels, isInitialized, setSelectedLevel]);
+
+  const currentLevel = bookingState.selectedLevels[currentLevelIndex] || '';
   const totalLevels = bookingState.selectedLevels.length;
   const isMultiLevel = totalLevels > 1;
-  const currentSeat = bookingState.levelSeats[currentLevel];
+  const currentSeat = currentLevel ? bookingState.levelSeats[currentLevel] : null;
   const levelSeats = getLevelSeats();
 
-  const handlePreviousLevel = () => {
-    if (currentLevelIndex > 0) {
-      const newIndex = currentLevelIndex - 1;
-      setCurrentLevelIndex(newIndex);
-      setSelectedLevel(bookingState.selectedLevels[newIndex]);
+  const handleLevelChange = (index: number) => {
+    if (index !== currentLevelIndex && index >= 0 && index < totalLevels) {
+      setCurrentLevelIndex(index);
+      setSelectedLevel(bookingState.selectedLevels[index]);
     }
   };
 
+  const handlePreviousLevel = () => {
+    handleLevelChange(currentLevelIndex - 1);
+  };
+
   const handleNextLevel = () => {
-    if (currentLevelIndex < totalLevels - 1) {
-      const newIndex = currentLevelIndex + 1;
-      setCurrentLevelIndex(newIndex);
-      setSelectedLevel(bookingState.selectedLevels[newIndex]);
-    }
+    handleLevelChange(currentLevelIndex + 1);
   };
 
   const handleContinue = () => {
@@ -110,10 +115,7 @@ export default function SelectSeat() {
                   return (
                     <button
                       key={level}
-                      onClick={() => {
-                        setCurrentLevelIndex(index);
-                        setSelectedLevel(level);
-                      }}
+                      onClick={() => handleLevelChange(index)}
                       className={`relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
                         isActive 
                           ? 'bg-primary text-primary-foreground' 
