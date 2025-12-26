@@ -18,6 +18,7 @@ import {
   Clock,
   Key,
   User,
+  Upload,
 } from 'lucide-react';
 import {
   Dialog,
@@ -25,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import BulkImportCodes from './BulkImportCodes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,6 +46,7 @@ export default function InvitationCodesManager() {
   const [statusFilter, setStatusFilter] = useState<'all' | InvitationCodeStatus>('all');
   const [usageFilter, setUsageFilter] = useState<'all' | 'used' | 'unused'>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<InvitationCode | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -248,10 +251,20 @@ export default function InvitationCodesManager() {
             </p>
           </div>
         </div>
-        <Button onClick={openCreateDialog} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Code
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setImportDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Import Codes
+          </Button>
+          <Button onClick={openCreateDialog} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Add Code
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -508,6 +521,14 @@ export default function InvitationCodesManager() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <BulkImportCodes
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        existingCodes={codes.map(c => c.code)}
+        onImportComplete={loadCodes}
+      />
     </div>
   );
 }
