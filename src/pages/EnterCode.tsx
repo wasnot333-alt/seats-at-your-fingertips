@@ -33,8 +33,15 @@ export default function EnterCode() {
       } else if (!result.isValid) {
         setError('Invalid invitation code. Please verify and try again.');
       } else {
-        saveCode(result.code);
-        navigate('/select-seat');
+        // Save code and allowed levels
+        saveCode(result.code, result.allowedLevels);
+        
+        // If multiple levels, go to level selection; otherwise go to seat selection
+        if (result.allowedLevels && result.allowedLevels.length > 1) {
+          navigate('/select-level');
+        } else {
+          navigate('/select-seat');
+        }
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');

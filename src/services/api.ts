@@ -18,6 +18,7 @@ export async function validateCode(code: string): Promise<BookingCode> {
         isValid: false,
         isExpired: false,
         maxSeats: 0,
+        allowedLevels: [],
       };
     }
 
@@ -29,6 +30,7 @@ export async function validateCode(code: string): Promise<BookingCode> {
       isValid: false,
       isExpired: false,
       maxSeats: 0,
+      allowedLevels: [],
     };
   }
 }
@@ -63,17 +65,61 @@ export async function getSeats(): Promise<Seat[]> {
 }
 
 /**
+ * GET seats with availability for a specific session level
+ */
+export async function getSeatsForLevel(sessionLevel: string): Promise<Seat[]> {
+  try {
+    // Get all seats
+    const { data: seats, error: seatsError } = await supabase
+      .from('seats')
+      .select('*')
+      .order('row')
+      .order('number');
+
+    if (seatsError) {
+      console.error('Error fetching seats:', seatsError);
+      return [];
+    }
+
+    // Get bookings for this level
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('seat_id')
+      .eq('session_level', sessionLevel)
+      .eq('status', 'booked');
+
+    if (bookingsError) {
+      console.error('Error fetching bookings:', bookingsError);
+      return [];
+    }
+
+    const bookedSeatIds = new Set(bookings.map(b => b.seat_id));
+
+    return seats.map((seat) => ({
+      id: seat.seat_id,
+      row: seat.row,
+      number: seat.number,
+      status: bookedSeatIds.has(seat.seat_id) ? 'booked' : 'available' as 'available' | 'booked' | 'selected',
+    }));
+  } catch (error) {
+    console.error('Error fetching seats:', error);
+    return [];
+  }
+}
+
+/**
  * POST /confirm-booking
  * Confirms a seat booking via edge function
  */
 export async function confirmBooking(
   seatId: string,
   code: string,
-  userDetails: UserDetails
+  userDetails: UserDetails,
+  sessionLevel: string
 ): Promise<{ success: boolean; booking?: Booking; error?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke('confirm-booking', {
-      body: { seatId, code, userDetails },
+      body: { seatId, code, userDetails, sessionLevel },
     });
 
     if (error) {
@@ -135,6 +181,7 @@ export async function getAdminBookings(): Promise<Booking[]> {
       mobileNumber: booking.mobile_number,
       email: booking.email,
       codeUsed: booking.invitation_code_used,
+      sessionLevel: booking.session_level,
       bookingTime: new Date(booking.booking_time).toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -177,6 +224,7 @@ export async function getInvitationCodes(): Promise<InvitationCode[]> {
       createdAt: code.created_at,
       updatedAt: code.updated_at,
       participantName: code.participant_name,
+      allowedLevels: code.allowed_levels || ['Level 1'],
     }));
   } catch (error) {
     console.error('Error fetching invitation codes:', error);
@@ -203,6 +251,7 @@ export async function createInvitationCode(
         expires_at: codeData.expiresAt,
         created_by: user?.id,
         participant_name: codeData.participantName || null,
+        allowed_levels: codeData.allowedLevels || ['Level 1'],
       })
       .select()
       .single();
@@ -225,6 +274,7 @@ export async function createInvitationCode(
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         participantName: data.participant_name,
+        allowedLevels: data.allowed_levels || ['Level 1'],
       },
     };
   } catch (error) {
@@ -250,6 +300,7 @@ export async function updateInvitationCode(
     if (codeData.currentUsage !== undefined) updatePayload.current_usage = codeData.currentUsage;
     if (codeData.expiresAt !== undefined) updatePayload.expires_at = codeData.expiresAt;
     if (codeData.participantName !== undefined) updatePayload.participant_name = codeData.participantName;
+    if (codeData.allowedLevels !== undefined) updatePayload.allowed_levels = codeData.allowedLevels;
 
     const { data, error } = await supabase
       .from('invitation_codes')
@@ -276,6 +327,7 @@ export async function updateInvitationCode(
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         participantName: data.participant_name,
+        allowedLevels: data.allowed_levels || ['Level 1'],
       },
     };
   } catch (error) {
@@ -317,6 +369,7 @@ export async function exportToExcel(bookings: Booking[]): Promise<void> {
     'S.No': index + 1,
     'Booking ID': booking.id,
     'Seat Number': booking.seatNumber,
+    'Session Level': booking.sessionLevel || 'Level 1',
     'Customer Name': booking.customerName,
     'Mobile Number': booking.mobileNumber,
     'Email': booking.email,
@@ -334,6 +387,7 @@ export async function exportToExcel(bookings: Booking[]): Promise<void> {
     { wch: 6 },  // S.No
     { wch: 38 }, // Booking ID
     { wch: 12 }, // Seat Number
+    { wch: 12 }, // Session Level
     { wch: 25 }, // Customer Name
     { wch: 15 }, // Mobile Number
     { wch: 30 }, // Email
@@ -356,6 +410,7 @@ export async function exportCodesToExcel(codes: InvitationCode[]): Promise<void>
     'S.No': index + 1,
     'Code': code.code,
     'Participant Name': code.participantName || 'Not assigned',
+    'Allowed Levels': code.allowedLevels.join(', '),
     'Status': code.status,
     'Usage': `${code.currentUsage}${code.maxUsage !== null ? ` / ${code.maxUsage}` : ' / ∞'}`,
     'Expires At': code.expiresAt ? new Date(code.expiresAt).toLocaleString() : 'Never',

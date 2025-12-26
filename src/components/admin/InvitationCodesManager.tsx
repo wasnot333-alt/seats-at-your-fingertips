@@ -133,6 +133,7 @@ export default function InvitationCodesManager() {
         maxUsage: formMaxUsage ? parseInt(formMaxUsage, 10) : null,
         expiresAt: formExpiresAt || null,
         createdBy: null,
+        allowedLevels: ['Level 1'],
       };
 
       if (editingCode) {
