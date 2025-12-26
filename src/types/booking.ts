@@ -11,10 +11,8 @@ export interface BookingCode {
   code: string;
   isValid: boolean;
   isExpired: boolean;
-  maxSeats: number;
   participantName?: string | null;
   requiresNameMatch?: boolean;
-  allowedLevels?: string[];
 }
 
 export interface UserDetails {
@@ -31,25 +29,13 @@ export interface Booking {
   mobileNumber: string;
   email: string;
   codeUsed: string;
-  sessionLevel?: string;
   bookingTime: string;
   status: 'booked' | 'available';
 }
 
-// Multi-level booking support
-export interface LevelSeatSelection {
-  level: string;
-  seat: Seat | null;
-}
-
 export interface BookingState {
   code: string;
-  allowedLevels: string[];
-  maxSeats: number; // How many levels can still be booked with this code
-  selectedLevels: string[]; // Levels user wants to book
-  selectedLevel: string | null; // Current level being edited
   selectedSeat: Seat | null;
-  levelSeats: Record<string, Seat | null>; // Seats selected per level
   userDetails: UserDetails | null;
 }
 
@@ -66,22 +52,4 @@ export interface InvitationCode {
   createdAt: string;
   updatedAt: string;
   participantName: string | null;
-  allowedLevels: string[];
-}
-
-// Analytics types
-export interface LevelAnalytics {
-  level: string;
-  totalSeats: number;
-  bookedSeats: number;
-  availableSeats: number;
-  percentageFilled: number;
-  status: 'green' | 'yellow' | 'red';
-}
-
-export interface OverallAnalytics {
-  totalParticipants: number;
-  uniqueParticipants: number;
-  multiLevelParticipants: number;
-  levelStats: LevelAnalytics[];
 }

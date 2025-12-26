@@ -8,7 +8,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedAdminRoute } from "@/components/auth/ProtectedAdminRoute";
 import Index from "./pages/Index";
 import EnterCode from "./pages/EnterCode";
-import SelectLevel from "./pages/SelectLevel";
 import SelectSeat from "./pages/SelectSeat";
 import UserDetails from "./pages/UserDetails";
 import Success from "./pages/Success";
@@ -29,7 +28,6 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/enter-code" element={<EnterCode />} />
-              <Route path="/select-level" element={<SelectLevel />} />
               <Route path="/select-seat" element={<SelectSeat />} />
               <Route path="/user-details" element={<UserDetails />} />
               <Route path="/success" element={<Success />} />

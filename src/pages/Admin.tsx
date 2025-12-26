@@ -4,42 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getAdminBookings, exportToExcel } from '@/services/api';
 import { Booking } from '@/types/booking';
 import InvitationCodesManager from '@/components/admin/InvitationCodesManager';
-import {
-  Armchair,
-  Search,
-  Filter,
-  FileSpreadsheet,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  ArrowLeft,
-  Users,
-  Ticket,
-  Clock,
-  LogOut,
-  Key,
-} from 'lucide-react';
+import { Armchair, Search, Filter, FileSpreadsheet, Loader2, CheckCircle2, XCircle, ArrowLeft, Users, Ticket, Clock, LogOut, Key } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-type DisplayBooking = Omit<
-  Booking,
-  'id' | 'seatNumber' | 'seatId' | 'sessionLevel' | 'bookingTime'
-> & {
-  id: string;
-  seatNumber: string;
-  seatId: string;
-  sessionLevel: string;
-  bookingTime: string;
-  seatsByLevel: { level: string; seat: string }[];
-};
-
-function sortLevels(levels: string[]) {
-  const getNum = (l: string) => {
-    const m = l.match(/(\d+)/);
-    return m ? Number(m[1]) : 999;
-  };
-  return [...levels].sort((a, b) => getNum(a) - getNum(b));
-}
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -70,65 +36,17 @@ export default function Admin() {
     navigate('/');
   };
 
-  const displayBookings = useMemo<DisplayBooking[]>(() => {
-    // Group by invitation code + email (most stable) so multi-level bookings show as one row.
-    const groups = new Map<string, Booking[]>();
-
-    for (const b of bookings) {
-      const key = `${b.codeUsed.toLowerCase().trim()}::${b.email.toLowerCase().trim()}`;
-      const list = groups.get(key) || [];
-      list.push(b);
-      groups.set(key, list);
-    }
-
-    const getLevelNum = (l: string) => {
-      const m = l.match(/(\d+)/);
-      return m ? Number(m[1]) : 999;
-    };
-
-    const result: DisplayBooking[] = [];
-
-    for (const list of groups.values()) {
-      const base = list[0];
-      const uniqueLevels = sortLevels(
-        Array.from(new Set(list.map((x) => (x.sessionLevel || 'Level 1').trim())))
-      );
-
-      // Use latest booking time among grouped rows
-      const latest = list.reduce((acc, cur) => (acc.bookingTime > cur.bookingTime ? acc : cur));
-
-      const seatsByLevel = [...list]
-        .sort((a, b) => getLevelNum(a.sessionLevel || 'Level 1') - getLevelNum(b.sessionLevel || 'Level 1'))
-        .map((b) => ({ level: b.sessionLevel || 'Level 1', seat: b.seatNumber }));
-
-      const uniqueSeats = Array.from(new Set(seatsByLevel.map((x) => x.seat)));
-
-      result.push({
-        ...base,
-        id: `group-${base.id}`,
-        seatId: uniqueSeats[0] || base.seatId,
-        seatNumber: uniqueSeats.join(', '),
-        sessionLevel: uniqueLevels.join(' + '),
-        bookingTime: latest.bookingTime,
-        seatsByLevel,
-      });
-    }
-
-    return result;
-  }, [bookings]);
-
   const filteredBookings = useMemo(() => {
-    return displayBookings.filter((booking) => {
+    return bookings.filter((booking) => {
       const matchesSearch =
         booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.seatNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.codeUsed.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.sessionLevel.toLowerCase().includes(searchTerm.toLowerCase());
+        booking.codeUsed.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [displayBookings, searchTerm, statusFilter]);
+  }, [bookings, searchTerm, statusFilter]);
 
   const stats = useMemo(() => {
     const totalSeats = 180;
@@ -139,8 +57,7 @@ export default function Admin() {
   const handleExportExcel = async () => {
     setExporting(true);
     try {
-      // Export the same view shown in the table
-      await exportToExcel(filteredBookings as unknown as Booking[]);
+      await exportToExcel(filteredBookings);
     } finally {
       setExporting(false);
     }
@@ -167,10 +84,7 @@ export default function Admin() {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
-              <button
-                onClick={handleSignOut}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm font-medium"
-              >
+              <button onClick={handleSignOut} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm font-medium">
                 <LogOut className="w-4 h-4" />
                 Sign Out
               </button>
@@ -228,37 +142,21 @@ export default function Admin() {
                 <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
                   <div className="relative flex-1 sm:flex-initial sm:w-80">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder="Search by name, seat, email, code..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="input-premium pl-12"
-                    />
+                    <input type="text" placeholder="Search by name, seat, email, code..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-premium pl-12" />
                   </div>
                   <div className="relative sm:w-48">
                     <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                      className="input-premium pl-12 appearance-none cursor-pointer"
-                    >
+                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="input-premium pl-12 appearance-none cursor-pointer">
                       <option value="all">All Status</option>
                       <option value="booked">Booked</option>
                       <option value="available">Available</option>
                     </select>
                   </div>
                 </div>
-                <div className="flex gap-3 w-full sm:w-auto">
-                  <button
-                    onClick={handleExportExcel}
-                    disabled={exporting}
-                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-green-600/10 border border-green-600/20 text-green-500 hover:bg-green-600/20 transition-all font-medium"
-                  >
-                    {exporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5" />}
-                    Export Excel
-                  </button>
-                </div>
+                <button onClick={handleExportExcel} disabled={exporting} className="flex items-center gap-2 px-5 py-3 rounded-xl bg-green-600/10 border border-green-600/20 text-green-500 hover:bg-green-600/20 transition-all font-medium">
+                  {exporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5" />}
+                  Export Excel
+                </button>
               </div>
             </div>
 
@@ -280,7 +178,6 @@ export default function Admin() {
                       <tr className="border-b border-border bg-secondary/30">
                         <th className="text-left px-6 py-4 font-semibold text-foreground">Seat</th>
                         <th className="text-left px-6 py-4 font-semibold text-foreground">Customer Name</th>
-                        <th className="text-left px-6 py-4 font-semibold text-foreground">Level</th>
                         <th className="text-left px-6 py-4 font-semibold text-foreground hidden md:table-cell">Mobile</th>
                         <th className="text-left px-6 py-4 font-semibold text-foreground hidden lg:table-cell">Email</th>
                         <th className="text-left px-6 py-4 font-semibold text-foreground hidden sm:table-cell">Code</th>
@@ -292,31 +189,12 @@ export default function Admin() {
                       {filteredBookings.map((booking) => (
                         <tr key={booking.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
                           <td className="px-6 py-4">
-                            {booking.seatsByLevel.length <= 1 ? (
-                              <span className="inline-flex items-center justify-center min-w-12 h-12 px-3 rounded-xl bg-primary/10 font-display font-bold text-primary">
-                                {booking.seatsByLevel[0]?.seat || booking.seatNumber}
-                              </span>
-                            ) : (
-                              <div className="flex flex-wrap gap-2">
-                                {booking.seatsByLevel.map(({ level, seat }) => (
-                                  <span
-                                    key={`${level}-${seat}`}
-                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary"
-                                  >
-                                    <span className="text-xs font-semibold">{level.replace('Level ', 'L')}</span>
-                                    <span className="font-display font-bold">{seat}</span>
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                            <span className="inline-flex items-center justify-center min-w-12 h-12 px-3 rounded-xl bg-primary/10 font-display font-bold text-primary">
+                              {booking.seatNumber}
+                            </span>
                           </td>
                           <td className="px-6 py-4">
                             <span className="font-medium text-foreground">{booking.customerName}</span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex items-center px-2 py-1 rounded-lg bg-purple-500/10 text-purple-500 text-sm font-medium">
-                              {booking.sessionLevel || 'Level 1'}
-                            </span>
                           </td>
                           <td className="px-6 py-4 text-muted-foreground hidden md:table-cell">{booking.mobileNumber}</td>
                           <td className="px-6 py-4 text-muted-foreground hidden lg:table-cell">{booking.email}</td>
@@ -325,13 +203,7 @@ export default function Admin() {
                           </td>
                           <td className="px-6 py-4 text-muted-foreground text-sm hidden xl:table-cell">{booking.bookingTime}</td>
                           <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
-                                booking.status === 'booked'
-                                  ? 'bg-seat-available/10 text-seat-available'
-                                  : 'bg-secondary text-muted-foreground'
-                              }`}
-                            >
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${booking.status === 'booked' ? 'bg-seat-available/10 text-seat-available' : 'bg-secondary text-muted-foreground'}`}>
                               {booking.status === 'booked' ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                               {booking.status === 'booked' ? 'Booked' : 'Available'}
                             </span>
@@ -344,9 +216,7 @@ export default function Admin() {
               )}
             </div>
             {!loading && filteredBookings.length > 0 && (
-              <p className="text-sm text-muted-foreground mt-4 text-center">
-                Showing {filteredBookings.length} of {displayBookings.length} participants
-              </p>
+              <p className="text-sm text-muted-foreground mt-4 text-center">Showing {filteredBookings.length} of {bookings.length} bookings</p>
             )}
           </TabsContent>
 

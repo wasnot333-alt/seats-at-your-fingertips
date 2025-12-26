@@ -33,15 +33,9 @@ export default function EnterCode() {
       } else if (!result.isValid) {
         setError('Invalid invitation code. Please verify and try again.');
       } else {
-        // Save code and allowed levels (and remaining usage as maxSeats)
-        saveCode(result.code, result.allowedLevels, result.maxSeats);
-
-        // If multiple levels, go to level selection; otherwise go to seat selection
-        if (result.allowedLevels && result.allowedLevels.length > 1) {
-          navigate('/select-level');
-        } else {
-          navigate('/select-seat');
-        }
+        // Save code and go to seat selection
+        saveCode(result.code);
+        navigate('/select-seat');
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');

@@ -1,4 +1,4 @@
-import { Booking, BookingCode, Seat, UserDetails, InvitationCode, LevelAnalytics, OverallAnalytics } from '@/types/booking';
+import { Booking, BookingCode, Seat, UserDetails, InvitationCode } from '@/types/booking';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -17,8 +17,6 @@ export async function validateCode(code: string): Promise<BookingCode> {
         code: code.toUpperCase().trim(),
         isValid: false,
         isExpired: false,
-        maxSeats: 0,
-        allowedLevels: [],
       };
     }
 
@@ -29,45 +27,15 @@ export async function validateCode(code: string): Promise<BookingCode> {
       code: code.toUpperCase().trim(),
       isValid: false,
       isExpired: false,
-      maxSeats: 0,
-      allowedLevels: [],
     };
   }
 }
 
 /**
  * GET /seats
- * Fetches all seats from the database
+ * Fetches all seats with booking status
  */
 export async function getSeats(): Promise<Seat[]> {
-  try {
-    const { data, error } = await supabase
-      .from('seats')
-      .select('*')
-      .order('row')
-      .order('number');
-
-    if (error) {
-      console.error('Error fetching seats:', error);
-      return [];
-    }
-
-    return data.map((seat) => ({
-      id: seat.seat_id,
-      row: seat.row,
-      number: seat.number,
-      status: seat.status as 'available' | 'booked' | 'selected',
-    }));
-  } catch (error) {
-    console.error('Error fetching seats:', error);
-    return [];
-  }
-}
-
-/**
- * GET seats with availability for a specific session level
- */
-export async function getSeatsForLevel(sessionLevel: string): Promise<Seat[]> {
   try {
     // Get all seats
     const { data: seats, error: seatsError } = await supabase
@@ -81,11 +49,10 @@ export async function getSeatsForLevel(sessionLevel: string): Promise<Seat[]> {
       return [];
     }
 
-    // Get bookings for this level
+    // Get all bookings
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('seat_id')
-      .eq('session_level', sessionLevel)
       .eq('status', 'booked');
 
     if (bookingsError) {
@@ -114,12 +81,11 @@ export async function getSeatsForLevel(sessionLevel: string): Promise<Seat[]> {
 export async function confirmBooking(
   seatId: string,
   code: string,
-  userDetails: UserDetails,
-  sessionLevel: string
+  userDetails: UserDetails
 ): Promise<{ success: boolean; booking?: Booking; error?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke('confirm-booking', {
-      body: { seatId, code, userDetails, sessionLevel },
+      body: { seatId, code, userDetails },
     });
 
     if (error) {
@@ -131,55 +97,6 @@ export async function confirmBooking(
   } catch (error) {
     console.error('Error confirming booking:', error);
     return { success: false, error: 'Failed to confirm booking' };
-  }
-}
-
-/**
- * POST /confirm-multi-booking
- * Confirms multiple seat bookings in a transaction via edge function
- */
-export async function confirmMultiBooking(
-  bookings: { seatId: string; sessionLevel: string }[],
-  code: string,
-  userDetails: UserDetails
-): Promise<{ success: boolean; bookings?: Booking[]; error?: string }> {
-  const tryReadFunctionError = async (fnError: unknown): Promise<string> => {
-    const anyErr = fnError as any;
-
-    // Supabase FunctionsHttpError sometimes carries a Response in context.response
-    const res: Response | undefined = anyErr?.context?.response;
-    if (res) {
-      try {
-        const text = await res.text();
-        try {
-          const json = JSON.parse(text);
-          return json?.error || json?.message || anyErr?.message || 'Failed to confirm bookings';
-        } catch {
-          return text || anyErr?.message || 'Failed to confirm bookings';
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    return anyErr?.message || 'Failed to confirm bookings';
-  };
-
-  try {
-    const { data, error } = await supabase.functions.invoke('confirm-multi-booking', {
-      body: { bookings, code, userDetails },
-    });
-
-    if (error) {
-      const msg = await tryReadFunctionError(error);
-      console.error('Error confirming multi-booking:', error);
-      return { success: false, error: msg };
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error confirming multi-booking:', error);
-    return { success: false, error: await tryReadFunctionError(error) };
   }
 }
 
@@ -230,7 +147,6 @@ export async function getAdminBookings(): Promise<Booking[]> {
       mobileNumber: booking.mobile_number,
       email: booking.email,
       codeUsed: booking.invitation_code_used,
-      sessionLevel: booking.session_level,
       bookingTime: new Date(booking.booking_time).toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -243,78 +159,6 @@ export async function getAdminBookings(): Promise<Booking[]> {
   } catch (error) {
     console.error('Error fetching bookings:', error);
     return [];
-  }
-}
-
-/**
- * GET level analytics for admin dashboard
- */
-export async function getLevelAnalytics(): Promise<OverallAnalytics> {
-  try {
-    const levels = ['Level 1', 'Level 2', 'Level 3'];
-    
-    // Get total seats count (assuming 180 seats per level)
-    const { count: totalSeatsCount } = await supabase
-      .from('seats')
-      .select('*', { count: 'exact', head: true });
-    
-    const totalSeatsPerLevel = totalSeatsCount || 180;
-
-    // Get all bookings
-    const { data: bookings, error: bookingsError } = await supabase
-      .from('bookings')
-      .select('seat_id, session_level, customer_name, email')
-      .eq('status', 'booked');
-
-    if (bookingsError) {
-      console.error('Error fetching bookings for analytics:', bookingsError);
-      throw bookingsError;
-    }
-
-    // Calculate level stats
-    const levelStats: LevelAnalytics[] = levels.map(level => {
-      const levelBookings = bookings.filter(b => b.session_level === level);
-      const bookedSeats = levelBookings.length;
-      const percentageFilled = Math.round((bookedSeats / totalSeatsPerLevel) * 100);
-      
-      let status: 'green' | 'yellow' | 'red' = 'green';
-      if (percentageFilled >= 85) status = 'red';
-      else if (percentageFilled >= 60) status = 'yellow';
-
-      return {
-        level,
-        totalSeats: totalSeatsPerLevel,
-        bookedSeats,
-        availableSeats: totalSeatsPerLevel - bookedSeats,
-        percentageFilled,
-        status,
-      };
-    });
-
-    // Calculate participant stats
-    const uniqueEmails = new Set(bookings.map(b => b.email.toLowerCase()));
-    const emailBookingCount = new Map<string, number>();
-    bookings.forEach(b => {
-      const email = b.email.toLowerCase();
-      emailBookingCount.set(email, (emailBookingCount.get(email) || 0) + 1);
-    });
-
-    const multiLevelParticipants = Array.from(emailBookingCount.values()).filter(count => count > 1).length;
-
-    return {
-      totalParticipants: bookings.length,
-      uniqueParticipants: uniqueEmails.size,
-      multiLevelParticipants,
-      levelStats,
-    };
-  } catch (error) {
-    console.error('Error fetching level analytics:', error);
-    return {
-      totalParticipants: 0,
-      uniqueParticipants: 0,
-      multiLevelParticipants: 0,
-      levelStats: [],
-    };
   }
 }
 
@@ -345,7 +189,6 @@ export async function getInvitationCodes(): Promise<InvitationCode[]> {
       createdAt: code.created_at,
       updatedAt: code.updated_at,
       participantName: code.participant_name,
-      allowedLevels: code.allowed_levels || ['Level 1'],
     }));
   } catch (error) {
     console.error('Error fetching invitation codes:', error);
@@ -372,7 +215,6 @@ export async function createInvitationCode(
         expires_at: codeData.expiresAt,
         created_by: user?.id,
         participant_name: codeData.participantName || null,
-        allowed_levels: codeData.allowedLevels || ['Level 1'],
       })
       .select()
       .single();
@@ -395,7 +237,6 @@ export async function createInvitationCode(
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         participantName: data.participant_name,
-        allowedLevels: data.allowed_levels || ['Level 1'],
       },
     };
   } catch (error) {
@@ -421,7 +262,6 @@ export async function updateInvitationCode(
     if (codeData.currentUsage !== undefined) updatePayload.current_usage = codeData.currentUsage;
     if (codeData.expiresAt !== undefined) updatePayload.expires_at = codeData.expiresAt;
     if (codeData.participantName !== undefined) updatePayload.participant_name = codeData.participantName;
-    if (codeData.allowedLevels !== undefined) updatePayload.allowed_levels = codeData.allowedLevels;
 
     const { data, error } = await supabase
       .from('invitation_codes')
@@ -448,7 +288,6 @@ export async function updateInvitationCode(
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         participantName: data.participant_name,
-        allowedLevels: data.allowed_levels || ['Level 1'],
       },
     };
   } catch (error) {
@@ -490,7 +329,6 @@ export async function exportToExcel(bookings: Booking[]): Promise<void> {
     'S.No': index + 1,
     'Booking ID': booking.id,
     'Seat Number': booking.seatNumber,
-    'Session Level': booking.sessionLevel || 'Level 1',
     'Customer Name': booking.customerName,
     'Mobile Number': booking.mobileNumber,
     'Email': booking.email,
@@ -502,45 +340,18 @@ export async function exportToExcel(bookings: Booking[]): Promise<void> {
   const worksheet = XLSX.utils.json_to_sheet(worksheetData);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
-  
-  // Auto-size columns
-  const colWidths = [
-    { wch: 6 },  // S.No
-    { wch: 38 }, // Booking ID
-    { wch: 12 }, // Seat Number
-    { wch: 12 }, // Session Level
-    { wch: 25 }, // Customer Name
-    { wch: 15 }, // Mobile Number
-    { wch: 30 }, // Email
-    { wch: 15 }, // Invitation Code
-    { wch: 22 }, // Booking Time
-    { wch: 10 }, // Status
-  ];
-  worksheet['!cols'] = colWidths;
 
-  XLSX.writeFile(workbook, `bookings_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
+  // Auto-adjust column widths
+  const maxWidths = Object.keys(worksheetData[0] || {}).map((key) => {
+    const maxLength = Math.max(
+      key.length,
+      ...worksheetData.map((row) => String(row[key as keyof typeof row] || '').length)
+    );
+    return { wch: Math.min(maxLength + 2, 50) };
+  });
+  worksheet['!cols'] = maxWidths;
 
-/**
- * Export invitation codes to Excel file
- */
-export async function exportCodesToExcel(codes: InvitationCode[]): Promise<void> {
-  const XLSX = await import('xlsx');
-  
-  const worksheetData = codes.map((code, index) => ({
-    'S.No': index + 1,
-    'Code': code.code,
-    'Participant Name': code.participantName || 'Not assigned',
-    'Allowed Levels': code.allowedLevels.join(', '),
-    'Status': code.status,
-    'Usage': `${code.currentUsage}${code.maxUsage !== null ? ` / ${code.maxUsage}` : ' / ∞'}`,
-    'Expires At': code.expiresAt ? new Date(code.expiresAt).toLocaleString() : 'Never',
-    'Created At': new Date(code.createdAt).toLocaleString(),
-  }));
-
-  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Invitation Codes');
-  
-  XLSX.writeFile(workbook, `invitation_codes_${new Date().toISOString().split('T')[0]}.xlsx`);
+  // Generate file and download
+  const fileName = `bookings_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
 }
