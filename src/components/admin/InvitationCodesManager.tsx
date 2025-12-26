@@ -518,14 +518,13 @@ export default function InvitationCodesManager() {
               <Label>Allowed Meditation Levels *</Label>
               <div className="grid gap-2">
                 {AVAILABLE_LEVELS.map(level => (
-                  <div
+                  <label
                     key={level}
                     className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
                       formAllowedLevels.includes(level) 
                         ? 'border-primary bg-primary/5' 
                         : 'border-border hover:border-primary/50'
                     }`}
-                    onClick={() => handleLevelToggle(level)}
                   >
                     <Checkbox
                       checked={formAllowedLevels.includes(level)}
@@ -539,7 +538,7 @@ export default function InvitationCodesManager() {
                         {level === 'Level 3' && '– Higher Consciousness'}
                       </span>
                     </div>
-                  </div>
+                  </label>
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
