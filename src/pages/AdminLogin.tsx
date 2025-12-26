@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageContainer } from '@/components/layout/PageContainer';
-import { Shield, Loader2, AlertCircle, Lock, Mail } from 'lucide-react';
+import { Shield, Loader2, AlertCircle, Lock, Mail, UserPlus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -13,9 +14,11 @@ const loginSchema = z.object({
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isLoading } = useAuth();
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [validationErrors, setValidationErrors] = useState<{ email?: string; password?: string }>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -28,6 +31,7 @@ export default function AdminLogin() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setValidationErrors({});
 
     // Validate input
@@ -45,6 +49,30 @@ export default function AdminLogin() {
     setSubmitting(true);
 
     try {
+      if (mode === 'signup') {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/admin-login`
+          }
+        });
+        
+        if (signUpError) {
+          if (signUpError.message.includes('already registered')) {
+            setError('This email is already registered. Please sign in.');
+          } else {
+            setError(signUpError.message);
+          }
+          setSubmitting(false);
+          return;
+        }
+        
+        setSuccess('Account created! Please tell me your email so I can add admin access.');
+        setSubmitting(false);
+        return;
+      }
+
       const { error: signInError } = await signIn(email, password);
       
       if (signInError) {
@@ -91,6 +119,32 @@ export default function AdminLogin() {
             </p>
           </div>
 
+          {/* Mode Toggle */}
+          <div className="flex rounded-xl bg-muted/50 p-1 mb-6">
+            <button
+              type="button"
+              onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                mode === 'login' 
+                  ? 'bg-background text-foreground shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                mode === 'signup' 
+                  ? 'bg-background text-foreground shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
           {/* Form */}
           <div className="glass-card">
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -98,6 +152,13 @@ export default function AdminLogin() {
                 <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center gap-3">
                   <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
                   <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
+
+              {success && (
+                <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-3">
+                  <UserPlus className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <p className="text-sm text-green-500">{success}</p>
                 </div>
               )}
 
@@ -145,12 +206,12 @@ export default function AdminLogin() {
                 {submitting ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Signing in...
+                    {mode === 'signup' ? 'Creating account...' : 'Signing in...'}
                   </>
                 ) : (
                   <>
-                    <Lock className="w-5 h-5" />
-                    Sign In
+                    {mode === 'signup' ? <UserPlus className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+                    {mode === 'signup' ? 'Create Account' : 'Sign In'}
                   </>
                 )}
               </button>
@@ -158,7 +219,10 @@ export default function AdminLogin() {
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Only authorized administrators can access this area
+            {mode === 'signup' 
+              ? 'After signing up, I\'ll add admin access for you'
+              : 'Only authorized administrators can access this area'
+            }
           </p>
         </div>
       </div>
