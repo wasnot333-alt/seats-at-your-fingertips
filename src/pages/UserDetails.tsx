@@ -1,23 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { StepIndicator } from '@/components/ui/step-indicator';
 import { useBooking } from '@/contexts/BookingContext';
-import { confirmBooking, confirmMultiBooking } from '@/services/api';
+import { confirmBooking } from '@/services/api';
 import { toast } from '@/components/ui/use-toast';
 import { ArrowLeft, Flower2, Loader2, Mail, Phone, Sparkles, User } from 'lucide-react';
 
 const steps = [
   { number: 1, title: 'Enter Code' },
-  { number: 2, title: 'Select Level' },
-  { number: 3, title: 'Select Seat' },
-  { number: 4, title: 'Your Details' },
-  { number: 5, title: 'Confirmation' },
+  { number: 2, title: 'Select Seat' },
+  { number: 3, title: 'Your Details' },
+  { number: 4, title: 'Confirmation' },
 ];
 
 export default function UserDetails() {
   const navigate = useNavigate();
-  const { bookingState, setUserDetails, setConfirmedBooking, setConfirmedBookings } = useBooking();
+  const { bookingState, setUserDetails, setConfirmedBooking } = useBooking();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -26,25 +25,11 @@ export default function UserDetails() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const selectedLevels = bookingState.selectedLevels?.length
-    ? bookingState.selectedLevels
-    : bookingState.selectedLevel
-      ? [bookingState.selectedLevel]
-      : [];
-
-  const isMultiLevel = selectedLevels.length > 1;
-
-  const selectionsForSummary = useMemo(() => {
-    return selectedLevels
-      .map((level) => ({ level, seat: bookingState.levelSeats[level] || null }))
-      .filter((x) => x.seat);
-  }, [bookingState.levelSeats, selectedLevels]);
-
   useEffect(() => {
-    if (!bookingState.code || selectedLevels.length === 0) {
+    if (!bookingState.code || !bookingState.selectedSeat) {
       navigate('/');
     }
-  }, [bookingState.code, navigate, selectedLevels.length]);
+  }, [bookingState.code, bookingState.selectedSeat, navigate]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -74,12 +59,10 @@ export default function UserDetails() {
 
     if (!validateForm()) return;
 
-    // Ensure each selected level has a seat
-    const selectedSeatsCount = selectedLevels.filter((lvl) => bookingState.levelSeats[lvl]).length;
-    if (selectedSeatsCount !== selectedLevels.length) {
+    if (!bookingState.selectedSeat) {
       toast({
-        title: 'Select seats for all levels',
-        description: 'Please choose one seat for each selected level before confirming.',
+        title: 'Seat not selected',
+        description: 'Please select a seat before confirming.',
         variant: 'destructive',
       });
       return;
@@ -88,53 +71,22 @@ export default function UserDetails() {
     setLoading(true);
 
     try {
-      if (isMultiLevel) {
-        const bookingsPayload = selectedLevels.map((level) => ({
-          sessionLevel: level,
-          seatId: bookingState.levelSeats[level]!.id,
-        }));
+      const result = await confirmBooking(
+        bookingState.selectedSeat.id,
+        bookingState.code,
+        formData
+      );
 
-        const result = await confirmMultiBooking(bookingsPayload, bookingState.code, formData);
-
-        if (result.success && result.bookings) {
-          setUserDetails(formData);
-          setConfirmedBookings(result.bookings);
-          setConfirmedBooking(null);
-          navigate('/success');
-        } else {
-          toast({
-            title: 'Booking failed',
-            description: result.error || 'Failed to confirm bookings',
-            variant: 'destructive',
-          });
-        }
+      if (result.success && result.booking) {
+        setUserDetails(formData);
+        setConfirmedBooking(result.booking);
+        navigate('/success');
       } else {
-        const level = selectedLevels[0] || 'Level 1';
-        const seat = bookingState.levelSeats[level] || bookingState.selectedSeat;
-
-        if (!seat) {
-          toast({
-            title: 'Seat not selected',
-            description: 'Please select a seat before confirming.',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        const result = await confirmBooking(seat.id, bookingState.code, formData, level);
-
-        if (result.success && result.booking) {
-          setUserDetails(formData);
-          setConfirmedBooking(result.booking);
-          setConfirmedBookings([]);
-          navigate('/success');
-        } else {
-          toast({
-            title: 'Booking failed',
-            description: result.error || 'Failed to confirm booking',
-            variant: 'destructive',
-          });
-        }
+        toast({
+          title: 'Booking failed',
+          description: result.error || 'Failed to confirm booking',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Reservation failed:', error);
@@ -158,7 +110,7 @@ export default function UserDetails() {
   return (
     <PageContainer>
       <div className="container mx-auto px-6">
-        <StepIndicator steps={steps} currentStep={4} />
+        <StepIndicator steps={steps} currentStep={3} />
 
         {/* Title */}
         <div className="text-center mb-10 animate-fade-up">
@@ -170,7 +122,7 @@ export default function UserDetails() {
           {/* Reservation Summary Card */}
           <div className="glass-card animate-fade-up" style={{ animationDelay: '100ms' }}>
             <h2 className="text-lg font-semibold text-foreground mb-4">Reservation Summary</h2>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Flower2 className="w-5 h-5 text-primary" />
@@ -178,25 +130,7 @@ export default function UserDetails() {
                 <div>
                   <p className="text-xs text-muted-foreground">Meditation Seat</p>
                   <p className="text-lg font-bold text-foreground">
-                    {isMultiLevel ? `${selectionsForSummary.length} seats` : selectionsForSummary[0]?.seat?.id}
-                  </p>
-                  {isMultiLevel && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {selectionsForSummary
-                        .map((s) => `${s.level.replace('Level ', 'L')}: ${s.seat!.id}`)
-                        .join(' • ')}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <Sparkles className="w-5 h-5 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Session Level</p>
-                  <p className="text-lg font-bold text-purple-600">
-                    {isMultiLevel ? selectedLevels.join(' + ') : selectedLevels[0] || 'Level 1'}
+                    {bookingState.selectedSeat?.id}
                   </p>
                 </div>
               </div>
