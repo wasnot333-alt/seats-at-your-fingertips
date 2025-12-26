@@ -1,33 +1,33 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { Shield, Loader2, AlertCircle, Lock, Mail } from 'lucide-react';
-import { z } from 'zod';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { Shield, Loader2, AlertCircle, Lock, Mail } from "lucide-react";
+import { z } from "zod";
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email("wasnot333@gmail.com"),
+  password: z.string().min(6, "Kanu@7773"),
 });
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { signIn, user, isAdmin, isLoading } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState<{ email?: string; password?: string }>({});
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && user && isAdmin) {
-      navigate('/admin');
+      navigate("/admin");
     }
   }, [user, isAdmin, isLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setValidationErrors({});
 
     // Validate input
@@ -35,8 +35,8 @@ export default function AdminLogin() {
     if (!result.success) {
       const errors: { email?: string; password?: string } = {};
       result.error.errors.forEach((err) => {
-        if (err.path[0] === 'email') errors.email = err.message;
-        if (err.path[0] === 'password') errors.password = err.message;
+        if (err.path[0] === "email") errors.email = err.message;
+        if (err.path[0] === "password") errors.password = err.message;
       });
       setValidationErrors(errors);
       return;
@@ -46,10 +46,10 @@ export default function AdminLogin() {
 
     try {
       const { error: signInError } = await signIn(email, password);
-      
+
       if (signInError) {
-        if (signInError.message.includes('Invalid login credentials')) {
-          setError('Invalid email or password');
+        if (signInError.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password");
         } else {
           setError(signInError.message);
         }
@@ -59,7 +59,7 @@ export default function AdminLogin() {
 
       // Auth state change will trigger navigation if admin
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError("An unexpected error occurred");
       setSubmitting(false);
     }
   };
@@ -83,12 +83,8 @@ export default function AdminLogin() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-6">
               <Shield className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="font-display text-3xl font-bold text-foreground mb-2">
-              Admin Login
-            </h1>
-            <p className="text-muted-foreground">
-              Sign in to access the admin dashboard
-            </p>
+            <h1 className="font-display text-3xl font-bold text-foreground mb-2">Admin Login</h1>
+            <p className="text-muted-foreground">Sign in to access the admin dashboard</p>
           </div>
 
           {/* Form */}
@@ -109,14 +105,12 @@ export default function AdminLogin() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`input-premium pl-12 ${validationErrors.email ? 'border-destructive' : ''}`}
+                    className={`input-premium pl-12 ${validationErrors.email ? "border-destructive" : ""}`}
                     placeholder="admin@example.com"
                     disabled={submitting}
                   />
                 </div>
-                {validationErrors.email && (
-                  <p className="text-sm text-destructive">{validationErrors.email}</p>
-                )}
+                {validationErrors.email && <p className="text-sm text-destructive">{validationErrors.email}</p>}
               </div>
 
               <div className="space-y-2">
@@ -127,14 +121,12 @@ export default function AdminLogin() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className={`input-premium pl-12 ${validationErrors.password ? 'border-destructive' : ''}`}
+                    className={`input-premium pl-12 ${validationErrors.password ? "border-destructive" : ""}`}
                     placeholder="••••••••"
                     disabled={submitting}
                   />
                 </div>
-                {validationErrors.password && (
-                  <p className="text-sm text-destructive">{validationErrors.password}</p>
-                )}
+                {validationErrors.password && <p className="text-sm text-destructive">{validationErrors.password}</p>}
               </div>
 
               <button
