@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { StepIndicator } from '@/components/ui/step-indicator';
 import { useBooking } from '@/contexts/BookingContext';
-import { confirmBooking } from '@/services/api';
-import { User, Phone, Mail, Flower2, Sparkles, Loader2, ArrowLeft } from 'lucide-react';
+import { confirmBooking, confirmMultiBooking } from '@/services/api';
+import { toast } from '@/components/ui/use-toast';
+import { ArrowLeft, Flower2, Loader2, Mail, Phone, Sparkles, User } from 'lucide-react';
 
 const steps = [
   { number: 1, title: 'Enter Code' },
@@ -16,7 +17,7 @@ const steps = [
 
 export default function UserDetails() {
   const navigate = useNavigate();
-  const { bookingState, setUserDetails, setConfirmedBooking } = useBooking();
+  const { bookingState, setUserDetails, setConfirmedBooking, setConfirmedBookings } = useBooking();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -25,11 +26,25 @@ export default function UserDetails() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const selectedLevels = bookingState.selectedLevels?.length
+    ? bookingState.selectedLevels
+    : bookingState.selectedLevel
+      ? [bookingState.selectedLevel]
+      : [];
+
+  const isMultiLevel = selectedLevels.length > 1;
+
+  const selectionsForSummary = useMemo(() => {
+    return selectedLevels
+      .map((level) => ({ level, seat: bookingState.levelSeats[level] || null }))
+      .filter((x) => x.seat);
+  }, [bookingState.levelSeats, selectedLevels]);
+
   useEffect(() => {
-    if (!bookingState.code || !bookingState.selectedSeat) {
+    if (!bookingState.code || selectedLevels.length === 0) {
       navigate('/');
     }
-  }, [bookingState, navigate]);
+  }, [bookingState.code, navigate, selectedLevels.length]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -56,35 +71,87 @@ export default function UserDetails() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
+
+    // Ensure each selected level has a seat
+    const selectedSeatsCount = selectedLevels.filter((lvl) => bookingState.levelSeats[lvl]).length;
+    if (selectedSeatsCount !== selectedLevels.length) {
+      toast({
+        title: 'Select seats for all levels',
+        description: 'Please choose one seat for each selected level before confirming.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setLoading(true);
 
     try {
-      const result = await confirmBooking(
-        bookingState.selectedSeat!.id,
-        bookingState.code,
-        formData,
-        bookingState.selectedLevel || 'Level 1'
-      );
+      if (isMultiLevel) {
+        const bookingsPayload = selectedLevels.map((level) => ({
+          sessionLevel: level,
+          seatId: bookingState.levelSeats[level]!.id,
+        }));
 
-      if (result.success && result.booking) {
-        setUserDetails(formData);
-        setConfirmedBooking(result.booking);
-        navigate('/success');
+        const result = await confirmMultiBooking(bookingsPayload, bookingState.code, formData);
+
+        if (result.success && result.bookings) {
+          setUserDetails(formData);
+          setConfirmedBookings(result.bookings);
+          setConfirmedBooking(null);
+          navigate('/success');
+        } else {
+          toast({
+            title: 'Booking failed',
+            description: result.error || 'Failed to confirm bookings',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        const level = selectedLevels[0] || 'Level 1';
+        const seat = bookingState.levelSeats[level] || bookingState.selectedSeat;
+
+        if (!seat) {
+          toast({
+            title: 'Seat not selected',
+            description: 'Please select a seat before confirming.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const result = await confirmBooking(seat.id, bookingState.code, formData, level);
+
+        if (result.success && result.booking) {
+          setUserDetails(formData);
+          setConfirmedBooking(result.booking);
+          setConfirmedBookings([]);
+          navigate('/success');
+        } else {
+          toast({
+            title: 'Booking failed',
+            description: result.error || 'Failed to confirm booking',
+            variant: 'destructive',
+          });
+        }
       }
     } catch (error) {
       console.error('Reservation failed:', error);
+      toast({
+        title: 'Something went wrong',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -95,12 +162,8 @@ export default function UserDetails() {
 
         {/* Title */}
         <div className="text-center mb-10 animate-fade-up">
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3">
-            Sadhak Details
-          </h1>
-          <p className="text-muted-foreground">
-            Please provide your contact information to complete the seat reservation
-          </p>
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3">Sadhak Details</h1>
+          <p className="text-muted-foreground">Please provide your contact information to complete the seat reservation</p>
         </div>
 
         <div className="max-w-2xl mx-auto grid gap-8">
@@ -115,8 +178,15 @@ export default function UserDetails() {
                 <div>
                   <p className="text-xs text-muted-foreground">Meditation Seat</p>
                   <p className="text-lg font-bold text-foreground">
-                    {bookingState.selectedSeat?.id}
+                    {isMultiLevel ? `${selectionsForSummary.length} seats` : selectionsForSummary[0]?.seat?.id}
                   </p>
+                  {isMultiLevel && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {selectionsForSummary
+                        .map((s) => `${s.level.replace('Level ', 'L')}: ${s.seat!.id}`)
+                        .join(' • ')}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
@@ -126,7 +196,7 @@ export default function UserDetails() {
                 <div>
                   <p className="text-xs text-muted-foreground">Session Level</p>
                   <p className="text-lg font-bold text-purple-600">
-                    {bookingState.selectedLevel || 'Level 1'}
+                    {isMultiLevel ? selectedLevels.join(' + ') : selectedLevels[0] || 'Level 1'}
                   </p>
                 </div>
               </div>
@@ -136,22 +206,16 @@ export default function UserDetails() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Invitation Code</p>
-                  <p className="text-lg font-bold font-mono text-foreground">
-                    {bookingState.code}
-                  </p>
+                  <p className="text-lg font-bold font-mono text-foreground">{bookingState.code}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Form */}
-          <form 
-            onSubmit={handleSubmit} 
-            className="glass-card animate-fade-up" 
-            style={{ animationDelay: '200ms' }}
-          >
+          <form onSubmit={handleSubmit} className="glass-card animate-fade-up" style={{ animationDelay: '200ms' }}>
             <h2 className="text-lg font-semibold text-foreground mb-6">Contact Information</h2>
-            
+
             <div className="space-y-5">
               {/* Full Name */}
               <div>
@@ -170,9 +234,7 @@ export default function UserDetails() {
                     disabled={loading}
                   />
                 </div>
-                {errors.fullName && (
-                  <p className="text-sm text-destructive mt-1">{errors.fullName}</p>
-                )}
+                {errors.fullName && <p className="text-sm text-destructive mt-1">{errors.fullName}</p>}
               </div>
 
               {/* Mobile Number */}
@@ -192,9 +254,7 @@ export default function UserDetails() {
                     disabled={loading}
                   />
                 </div>
-                {errors.mobileNumber && (
-                  <p className="text-sm text-destructive mt-1">{errors.mobileNumber}</p>
-                )}
+                {errors.mobileNumber && <p className="text-sm text-destructive mt-1">{errors.mobileNumber}</p>}
               </div>
 
               {/* Email */}
@@ -214,9 +274,7 @@ export default function UserDetails() {
                     disabled={loading}
                   />
                 </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive mt-1">{errors.email}</p>
-                )}
+                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
               </div>
             </div>
 
@@ -226,17 +284,12 @@ export default function UserDetails() {
                 type="button"
                 onClick={() => navigate('/select-seat')}
                 disabled={loading}
-                className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold
-                         bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-all"
+                className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-all"
               >
                 <ArrowLeft className="w-5 h-5" />
                 Back
               </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="gold-button flex-1 flex items-center justify-center gap-3"
-              >
+              <button type="submit" disabled={loading} className="gold-button flex-1 flex items-center justify-center gap-3">
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
