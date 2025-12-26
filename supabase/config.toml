@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.get-booking]
 verify_jwt = false
+
+[functions.confirm-multi-booking]
+verify_jwt = false

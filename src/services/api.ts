@@ -1,4 +1,4 @@
-import { Booking, BookingCode, Seat, UserDetails, InvitationCode } from '@/types/booking';
+import { Booking, BookingCode, Seat, UserDetails, InvitationCode, LevelAnalytics, OverallAnalytics } from '@/types/booking';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -135,6 +135,32 @@ export async function confirmBooking(
 }
 
 /**
+ * POST /confirm-multi-booking
+ * Confirms multiple seat bookings in a transaction via edge function
+ */
+export async function confirmMultiBooking(
+  bookings: { seatId: string; sessionLevel: string }[],
+  code: string,
+  userDetails: UserDetails
+): Promise<{ success: boolean; bookings?: Booking[]; error?: string }> {
+  try {
+    const { data, error } = await supabase.functions.invoke('confirm-multi-booking', {
+      body: { bookings, code, userDetails },
+    });
+
+    if (error) {
+      console.error('Error confirming multi-booking:', error);
+      return { success: false, error: error.message };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error confirming multi-booking:', error);
+    return { success: false, error: 'Failed to confirm bookings' };
+  }
+}
+
+/**
  * GET booking by ID via edge function (for confirmation page)
  */
 export async function getBookingById(
@@ -194,6 +220,78 @@ export async function getAdminBookings(): Promise<Booking[]> {
   } catch (error) {
     console.error('Error fetching bookings:', error);
     return [];
+  }
+}
+
+/**
+ * GET level analytics for admin dashboard
+ */
+export async function getLevelAnalytics(): Promise<OverallAnalytics> {
+  try {
+    const levels = ['Level 1', 'Level 2', 'Level 3'];
+    
+    // Get total seats count (assuming 180 seats per level)
+    const { count: totalSeatsCount } = await supabase
+      .from('seats')
+      .select('*', { count: 'exact', head: true });
+    
+    const totalSeatsPerLevel = totalSeatsCount || 180;
+
+    // Get all bookings
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('seat_id, session_level, customer_name, email')
+      .eq('status', 'booked');
+
+    if (bookingsError) {
+      console.error('Error fetching bookings for analytics:', bookingsError);
+      throw bookingsError;
+    }
+
+    // Calculate level stats
+    const levelStats: LevelAnalytics[] = levels.map(level => {
+      const levelBookings = bookings.filter(b => b.session_level === level);
+      const bookedSeats = levelBookings.length;
+      const percentageFilled = Math.round((bookedSeats / totalSeatsPerLevel) * 100);
+      
+      let status: 'green' | 'yellow' | 'red' = 'green';
+      if (percentageFilled >= 85) status = 'red';
+      else if (percentageFilled >= 60) status = 'yellow';
+
+      return {
+        level,
+        totalSeats: totalSeatsPerLevel,
+        bookedSeats,
+        availableSeats: totalSeatsPerLevel - bookedSeats,
+        percentageFilled,
+        status,
+      };
+    });
+
+    // Calculate participant stats
+    const uniqueEmails = new Set(bookings.map(b => b.email.toLowerCase()));
+    const emailBookingCount = new Map<string, number>();
+    bookings.forEach(b => {
+      const email = b.email.toLowerCase();
+      emailBookingCount.set(email, (emailBookingCount.get(email) || 0) + 1);
+    });
+
+    const multiLevelParticipants = Array.from(emailBookingCount.values()).filter(count => count > 1).length;
+
+    return {
+      totalParticipants: bookings.length,
+      uniqueParticipants: uniqueEmails.size,
+      multiLevelParticipants,
+      levelStats,
+    };
+  } catch (error) {
+    console.error('Error fetching level analytics:', error);
+    return {
+      totalParticipants: 0,
+      uniqueParticipants: 0,
+      multiLevelParticipants: 0,
+      levelStats: [],
+    };
   }
 }
 
