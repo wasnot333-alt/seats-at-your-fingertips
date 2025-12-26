@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { format } from 'date-fns';
 import { Booking } from '@/types/booking';
-import { User, Sparkles, Calendar, Armchair, Printer, Zap } from 'lucide-react';
+import { User, Sparkles, Calendar, Armchair, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import guruImage from '@/assets/guru-bhaiyaji.jpg';
 
@@ -120,12 +120,6 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
           <p className="seat-number text-5xl font-display font-bold text-amber-800">
             {displayValue(booking.seatNumber)}
           </p>
-          {booking.sessionLevel && (
-            <p className="session-level text-lg font-semibold text-purple-600 mt-2 flex items-center justify-center gap-2">
-              <Zap className="w-4 h-4" />
-              {booking.sessionLevel}
-            </p>
-          )}
         </div>
 
         {/* Details */}
