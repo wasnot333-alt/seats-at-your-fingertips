@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Booking } from '@/types/booking';
-import { Flower2, User, Sparkles, Calendar, Armchair, Printer, Download } from 'lucide-react';
+import { User, Sparkles, Calendar, Armchair, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import guruImage from '@/assets/guru-bhaiyaji.jpg';
 
@@ -9,8 +9,19 @@ interface BookingTicketProps {
   booking: Booking;
 }
 
+// Helper to safely display values
+const displayValue = (value: string | null | undefined, fallback = 'Not Available'): string => {
+  if (value === null || value === undefined || value.trim() === '') {
+    return fallback;
+  }
+  return value;
+};
+
 export default function BookingTicket({ booking }: BookingTicketProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
+
+  // Generate QR code value in format BOOKING::<booking_id>
+  const qrCodeValue = `BOOKING::${booking.id}`;
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -22,7 +33,7 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Meditation Seat Ticket - ${booking.seatNumber}</title>
+          <title>Meditation Seat Ticket - ${displayValue(booking.seatNumber)}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -99,7 +110,9 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
         {/* Seat Number */}
         <div className="seat-section text-center my-6">
           <p className="seat-label text-xs text-muted-foreground uppercase tracking-widest">Seat Number</p>
-          <p className="seat-number text-5xl font-display font-bold text-amber-800">{booking.seatNumber}</p>
+          <p className="seat-number text-5xl font-display font-bold text-amber-800">
+            {displayValue(booking.seatNumber)}
+          </p>
         </div>
 
         {/* Details */}
@@ -108,32 +121,40 @@ export default function BookingTicket({ booking }: BookingTicketProps) {
             <span className="detail-label text-xs text-muted-foreground flex items-center gap-2">
               <User className="w-4 h-4" /> Name
             </span>
-            <span className="detail-value text-sm font-medium text-foreground">{booking.customerName}</span>
+            <span className="detail-value text-sm font-medium text-foreground">
+              {displayValue(booking.customerName)}
+            </span>
           </div>
           <div className="detail-row flex justify-between items-center py-2 border-b border-border/50">
             <span className="detail-label text-xs text-muted-foreground flex items-center gap-2">
               <Sparkles className="w-4 h-4" /> Invitation Code
             </span>
-            <span className="detail-value text-sm font-mono font-medium text-foreground">{booking.codeUsed}</span>
+            <span className="detail-value text-sm font-mono font-medium text-foreground">
+              {displayValue(booking.codeUsed)}
+            </span>
           </div>
           <div className="detail-row flex justify-between items-center py-2 border-b border-border/50">
             <span className="detail-label text-xs text-muted-foreground flex items-center gap-2">
               <Calendar className="w-4 h-4" /> Booked On
             </span>
-            <span className="detail-value text-sm font-medium text-foreground">{booking.bookingTime}</span>
+            <span className="detail-value text-sm font-medium text-foreground">
+              {displayValue(booking.bookingTime)}
+            </span>
           </div>
           <div className="detail-row flex justify-between items-center py-2">
             <span className="detail-label text-xs text-muted-foreground flex items-center gap-2">
               <Armchair className="w-4 h-4" /> Booking ID
             </span>
-            <span className="detail-value text-xs font-mono text-muted-foreground">{booking.id.slice(0, 8)}</span>
+            <span className="detail-value text-xs font-mono text-muted-foreground">
+              {booking.id ? booking.id.slice(0, 8) : 'Not Available'}
+            </span>
           </div>
         </div>
 
         {/* QR Code */}
         <div className="qr-section text-center border-t-2 border-dashed border-primary/30 pt-4">
           <QRCodeSVG 
-            value={booking.id}
+            value={qrCodeValue}
             size={120}
             level="H"
             className="mx-auto"

@@ -31,16 +31,16 @@ export default function Success() {
     navigate('/');
   };
 
-  // Convert to Booking type for the ticket component
+  // Use confirmed booking data directly - it's already in correct format
   const booking: Booking = {
     id: confirmedBooking.id || crypto.randomUUID(),
-    seatId: confirmedBooking.seatNumber,
-    seatNumber: confirmedBooking.seatNumber,
-    customerName: confirmedBooking.customerName,
-    mobileNumber: '',
-    email: confirmedBooking.email,
-    codeUsed: confirmedBooking.codeUsed,
-    bookingTime: confirmedBooking.bookingTime,
+    seatId: confirmedBooking.seatId || confirmedBooking.seatNumber || '',
+    seatNumber: confirmedBooking.seatNumber || '',
+    customerName: confirmedBooking.customerName || '',
+    mobileNumber: confirmedBooking.mobileNumber || '',
+    email: confirmedBooking.email || '',
+    codeUsed: confirmedBooking.codeUsed || '',
+    bookingTime: confirmedBooking.bookingTime || '',
     status: 'booked',
   };
 
