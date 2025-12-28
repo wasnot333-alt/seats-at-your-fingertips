@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, ArrowLeft, FileText } from "lucide-react";
+import { Download, ArrowLeft, FileText, Server } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -446,6 +446,261 @@ const Documentation = () => {
     doc.save("Meditation-Seat-Booking-System-Documentation.pdf");
   };
 
+  const generateSelfHostingGuidePDF = () => {
+    const doc = new jsPDF();
+    let yPos = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const contentWidth = pageWidth - 2 * margin;
+
+    const addTitle = (text: string, size: number = 16) => {
+      if (yPos > 260) { doc.addPage(); yPos = 20; }
+      doc.setFontSize(size);
+      doc.setFont("helvetica", "bold");
+      doc.text(text, margin, yPos);
+      yPos += size * 0.5 + 5;
+    };
+
+    const addSubtitle = (text: string) => {
+      if (yPos > 260) { doc.addPage(); yPos = 20; }
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(text, margin, yPos);
+      yPos += 8;
+    };
+
+    const addText = (text: string) => {
+      if (yPos > 260) { doc.addPage(); yPos = 20; }
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(text, contentWidth);
+      doc.text(lines, margin, yPos);
+      yPos += lines.length * 5 + 3;
+    };
+
+    const addStep = (num: string, text: string) => {
+      if (yPos > 260) { doc.addPage(); yPos = 20; }
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(num, margin, yPos);
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(text, contentWidth - 15);
+      doc.text(lines, margin + 12, yPos);
+      yPos += lines.length * 5 + 4;
+    };
+
+    const addSpace = (space: number = 5) => { yPos += space; };
+
+    // Cover Page
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("SELF-HOSTING GUIDE", pageWidth / 2, 60, { align: "center" });
+    doc.setFontSize(16);
+    doc.text("Meditation Seat Booking System", pageWidth / 2, 75, { align: "center" });
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Complete Step-by-Step Migration Guide", pageWidth / 2, 90, { align: "center" });
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 105, { align: "center" });
+    doc.setFontSize(10);
+    doc.text("Frontend: Hostinger | Backend: Supabase Free Tier", pageWidth / 2, 120, { align: "center" });
+
+    // PART 1: GitHub Export
+    doc.addPage();
+    yPos = 20;
+    addTitle("PART 1: EXPORT CODE TO GITHUB", 18);
+    addText("First, save your code to GitHub while you still have Lovable access.");
+    addSpace();
+
+    addSubtitle("Step 1: Connect GitHub to Lovable");
+    addStep("1.1", "In Lovable editor, click the GitHub icon in the left sidebar");
+    addStep("1.2", "Click 'Connect to GitHub' button");
+    addStep("1.3", "A popup will open - click 'Authorize Lovable' on GitHub");
+    addStep("1.4", "Select your GitHub account (personal or organization)");
+    addStep("1.5", "Click 'Install & Authorize'");
+    addSpace();
+
+    addSubtitle("Step 2: Create Repository");
+    addStep("2.1", "Back in Lovable, click 'Create Repository'");
+    addStep("2.2", "Enter repository name: 'meditation-booking-system'");
+    addStep("2.3", "Choose 'Private' for visibility");
+    addStep("2.4", "Click 'Create Repository'");
+    addStep("2.5", "Wait for sync - your code is now on GitHub!");
+    addSpace();
+
+    addSubtitle("Step 3: Clone to Your Computer (Optional)");
+    addStep("3.1", "Go to github.com and open your new repository");
+    addStep("3.2", "Click green 'Code' button - Copy the HTTPS URL");
+    addStep("3.3", "Open terminal/command prompt on your computer");
+    addStep("3.4", "Run: git clone [paste-url-here]");
+    addStep("3.5", "Run: cd meditation-booking-system");
+    addStep("3.6", "Run: npm install");
+
+    // PART 2: Supabase Setup
+    doc.addPage();
+    yPos = 20;
+    addTitle("PART 2: SETUP FREE SUPABASE ACCOUNT", 18);
+    addText("Create your own Supabase project to host the database and backend.");
+    addSpace();
+
+    addSubtitle("Step 1: Create Supabase Account");
+    addStep("1.1", "Go to: https://supabase.com");
+    addStep("1.2", "Click 'Start your project' (green button)");
+    addStep("1.3", "Sign up with GitHub (recommended) or email");
+    addStep("1.4", "Verify your email if required");
+    addSpace();
+
+    addSubtitle("Step 2: Create New Project");
+    addStep("2.1", "Click 'New Project' button");
+    addStep("2.2", "Select organization (or create one named 'Personal')");
+    addStep("2.3", "Project name: 'meditation-booking'");
+    addStep("2.4", "Database password: Create a STRONG password (SAVE THIS!)");
+    addStep("2.5", "Region: Choose closest to your users");
+    addStep("2.6", "Click 'Create new project'");
+    addStep("2.7", "Wait 2-3 minutes for project to be ready");
+    addSpace();
+
+    addSubtitle("Step 3: Get Your API Keys");
+    addStep("3.1", "In Supabase dashboard, go to Settings - API");
+    addStep("3.2", "Copy 'Project URL' (looks like: https://xxxxx.supabase.co)");
+    addStep("3.3", "Copy 'anon public' key (long string starting with 'eyJ...')");
+    addStep("3.4", "Save both in a safe place - you'll need these later!");
+
+    // PART 3: Database Creation
+    doc.addPage();
+    yPos = 20;
+    addTitle("PART 3: CREATE DATABASE TABLES", 18);
+    addText("Run these SQL commands in Supabase SQL Editor to create your database.");
+    addSpace();
+
+    addSubtitle("Step 1: Open SQL Editor");
+    addStep("1.1", "In Supabase dashboard, click 'SQL Editor' in left sidebar");
+    addStep("1.2", "Click '+ New query' button");
+    addSpace();
+
+    addSubtitle("Step 2: Create Enum Types");
+    addText("Copy and paste this SQL, then click 'Run':");
+    addSpace();
+    doc.setFontSize(8);
+    doc.setFont("courier", "normal");
+    doc.text("CREATE TYPE invitation_code_status AS ENUM ('active', 'disabled', 'expired');", margin, yPos);
+    yPos += 5;
+    doc.text("CREATE TYPE app_role AS ENUM ('admin', 'user');", margin, yPos);
+    yPos += 10;
+
+    addSubtitle("Step 3: Create Tables (Run Each Separately)");
+    addText("See the Technical Documentation PDF for complete SQL schemas.");
+    addText("Tables needed: invitation_codes, seats, bookings, user_roles");
+
+    // PART 4: Hostinger Setup
+    doc.addPage();
+    yPos = 20;
+    addTitle("PART 4: DEPLOY TO HOSTINGER", 18);
+    addText("Host your frontend on Hostinger web hosting.");
+    addSpace();
+
+    addSubtitle("Step 1: Build Your Project");
+    addStep("1.1", "Open terminal in your project folder");
+    addStep("1.2", "Create .env file with your Supabase credentials:");
+    addText("   VITE_SUPABASE_URL=https://your-project.supabase.co");
+    addText("   VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key");
+    addStep("1.3", "Run: npm run build");
+    addStep("1.4", "A 'dist' folder will be created with your built files");
+    addSpace();
+
+    addSubtitle("Step 2: Upload to Hostinger");
+    addStep("2.1", "Login to hPanel at hpanel.hostinger.com");
+    addStep("2.2", "Click 'File Manager'");
+    addStep("2.3", "Navigate to 'public_html' folder");
+    addStep("2.4", "Delete existing files");
+    addStep("2.5", "Click 'Upload' and select ALL files from 'dist' folder");
+    addSpace();
+
+    addSubtitle("Step 3: Create .htaccess File");
+    addStep("3.1", "In public_html, click 'New File'");
+    addStep("3.2", "Name it: .htaccess");
+    addStep("3.3", "Add this content:");
+    addSpace();
+    doc.setFontSize(8);
+    doc.setFont("courier", "normal");
+    doc.text("<IfModule mod_rewrite.c>", margin, yPos); yPos += 4;
+    doc.text("  RewriteEngine On", margin, yPos); yPos += 4;
+    doc.text("  RewriteBase /", margin, yPos); yPos += 4;
+    doc.text("  RewriteRule ^index\\.html$ - [L]", margin, yPos); yPos += 4;
+    doc.text("  RewriteCond %{REQUEST_FILENAME} !-f", margin, yPos); yPos += 4;
+    doc.text("  RewriteCond %{REQUEST_FILENAME} !-d", margin, yPos); yPos += 4;
+    doc.text("  RewriteRule . /index.html [L]", margin, yPos); yPos += 4;
+    doc.text("</IfModule>", margin, yPos); yPos += 10;
+
+    addSubtitle("Step 4: Enable SSL");
+    addStep("4.1", "In hPanel, go to 'SSL' section");
+    addStep("4.2", "Click 'Setup' and select 'Free SSL'");
+    addStep("4.3", "Enable 'Force HTTPS'");
+
+    // PART 5: Admin Setup
+    doc.addPage();
+    yPos = 20;
+    addTitle("PART 5: CREATE ADMIN USER", 18);
+    addSpace();
+
+    addSubtitle("Step 1: Create User in Supabase");
+    addStep("1.1", "Go to Supabase Dashboard - Authentication - Users");
+    addStep("1.2", "Click 'Add User' - 'Create New User'");
+    addStep("1.3", "Enter email and password");
+    addStep("1.4", "Toggle 'Auto Confirm User' ON");
+    addStep("1.5", "Click 'Create User'");
+    addStep("1.6", "Copy the User UUID");
+    addSpace();
+
+    addSubtitle("Step 2: Assign Admin Role");
+    addStep("2.1", "Go to SQL Editor");
+    addStep("2.2", "Run:");
+    addSpace();
+    doc.setFontSize(9);
+    doc.setFont("courier", "normal");
+    doc.text("INSERT INTO user_roles (user_id, role)", margin, yPos); yPos += 5;
+    doc.text("VALUES ('YOUR-USER-UUID-HERE', 'admin');", margin, yPos); yPos += 10;
+
+    doc.setFont("helvetica", "normal");
+    addText("You can now login at yourdomain.com/admin-login");
+
+    // Summary
+    doc.addPage();
+    yPos = 20;
+    addTitle("SUMMARY: COST BREAKDOWN", 18);
+    addSpace();
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Component", "Service", "Monthly Cost"]],
+      body: [
+        ["Frontend", "Hostinger", "Your existing plan"],
+        ["Database", "Supabase Free", "$0"],
+        ["Edge Functions", "Supabase Free", "$0"],
+        ["Auth", "Supabase Free", "$0"],
+        ["SSL", "Hostinger", "Included"],
+      ],
+      margin: { left: margin },
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    addSubtitle("Supabase Free Tier Limits");
+    addText("500 MB database | 500K function calls/month | Unlimited users");
+    addSpace();
+
+    addTitle("You're all set!", 14);
+    addText("Your app is now self-hosted and runs independently of Lovable!");
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Self-Hosting Guide | Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
+    }
+
+    doc.save("Self-Hosting-Guide-Hostinger-Supabase.pdf");
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
@@ -458,46 +713,66 @@ const Documentation = () => {
           Back
         </Button>
 
-        <Card>
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <FileText className="w-16 h-16 text-primary" />
-            </div>
-            <CardTitle className="text-2xl">System Documentation</CardTitle>
-            <p className="text-muted-foreground mt-2">
-              Complete technical documentation for the Meditation Seat Booking System
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-muted/50 rounded-lg p-6">
-              <h3 className="font-semibold mb-3">Documentation Includes:</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• App Overview & User Roles</li>
-                <li>• User Flows & Business Logic</li>
-                <li>• Complete Database Design</li>
-                <li>• Backend Edge Functions</li>
-                <li>• Security & RLS Policies</li>
-                <li>• One-Time Code Logic</li>
-                <li>• Frontend Structure</li>
-                <li>• Edge Cases & Bug Prevention</li>
-                <li>• Rebuild Instructions</li>
-              </ul>
-            </div>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <FileText className="w-16 h-16 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Technical Documentation</CardTitle>
+              <p className="text-muted-foreground mt-2">
+                Complete system documentation for rebuilding from scratch
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-muted/50 rounded-lg p-6">
+                <h3 className="font-semibold mb-3">Includes:</h3>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>• Database Design & Schema</li>
+                  <li>• User Flows & Business Logic</li>
+                  <li>• Backend Edge Functions</li>
+                  <li>• Security & RLS Policies</li>
+                  <li>• Frontend Structure</li>
+                </ul>
+              </div>
 
-            <Button
-              onClick={generatePDF}
-              className="w-full"
-              size="lg"
-            >
-              <Download className="w-5 h-5 mr-2" />
-              Download PDF Documentation
-            </Button>
+              <Button onClick={generatePDF} className="w-full" size="lg">
+                <Download className="w-5 h-5 mr-2" />
+                Download Technical Documentation
+              </Button>
+            </CardContent>
+          </Card>
 
-            <p className="text-xs text-center text-muted-foreground">
-              PDF includes all technical specifications needed to rebuild the system from scratch
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <Server className="w-16 h-16 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Self-Hosting Guide</CardTitle>
+              <p className="text-muted-foreground mt-2">
+                Step-by-step guide to host on Hostinger + Supabase (Free)
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-muted/50 rounded-lg p-6">
+                <h3 className="font-semibold mb-3">Covers:</h3>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>• Export code to GitHub</li>
+                  <li>• Setup free Supabase account</li>
+                  <li>• Create database tables</li>
+                  <li>• Deploy to Hostinger</li>
+                  <li>• Configure .htaccess for SPA</li>
+                  <li>• Create admin user</li>
+                </ul>
+              </div>
+
+              <Button onClick={generateSelfHostingGuidePDF} className="w-full" size="lg" variant="outline">
+                <Download className="w-5 h-5 mr-2" />
+                Download Self-Hosting Guide
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
