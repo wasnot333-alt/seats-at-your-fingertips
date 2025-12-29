@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.confirm-multi-booking]
 verify_jwt = false
+
+[functions.create-admin-user]
+verify_jwt = false
